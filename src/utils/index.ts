@@ -1,0 +1,54 @@
+import { GRAPH_CONSTANTS, UNISWAP_CONSTANTS } from "../constants";
+
+export const getGraphEndpoint = (apiKey: string) =>
+  GRAPH_CONSTANTS.ENDPOINTS.DECENTRALIZED_TEMPLATE.replace(GRAPH_CONSTANTS.ENDPOINTS.API_KEY_PLACEHOLDER, apiKey);
+
+export const getSqrtPriceX96FromTick = (tick: number): bigint => {
+  const absTick = tick < 0 ? -tick : tick;
+  let ratio =
+    (absTick & 0x1) !== 0 ? UNISWAP_CONSTANTS.HEX_VALUES.TICK_SPACING[0x1] : UNISWAP_CONSTANTS.HEX_VALUES.BASE_RATIO;
+
+  if ((absTick & 0x2) !== 0)
+    ratio = (ratio * UNISWAP_CONSTANTS.HEX_VALUES.TICK_SPACING[0x2]) >> UNISWAP_CONSTANTS.MATH.Q128;
+  if ((absTick & 0x4) !== 0)
+    ratio = (ratio * UNISWAP_CONSTANTS.HEX_VALUES.TICK_SPACING[0x4]) >> UNISWAP_CONSTANTS.MATH.Q128;
+  if ((absTick & 0x8) !== 0)
+    ratio = (ratio * UNISWAP_CONSTANTS.HEX_VALUES.TICK_SPACING[0x8]) >> UNISWAP_CONSTANTS.MATH.Q128;
+  if ((absTick & 0x10) !== 0)
+    ratio = (ratio * UNISWAP_CONSTANTS.HEX_VALUES.TICK_SPACING[0x10]) >> UNISWAP_CONSTANTS.MATH.Q128;
+  if ((absTick & 0x20) !== 0)
+    ratio = (ratio * UNISWAP_CONSTANTS.HEX_VALUES.TICK_SPACING[0x20]) >> UNISWAP_CONSTANTS.MATH.Q128;
+  if ((absTick & 0x40) !== 0)
+    ratio = (ratio * UNISWAP_CONSTANTS.HEX_VALUES.TICK_SPACING[0x40]) >> UNISWAP_CONSTANTS.MATH.Q128;
+  if ((absTick & 0x80) !== 0)
+    ratio = (ratio * UNISWAP_CONSTANTS.HEX_VALUES.TICK_SPACING[0x80]) >> UNISWAP_CONSTANTS.MATH.Q128;
+  if ((absTick & 0x100) !== 0)
+    ratio = (ratio * UNISWAP_CONSTANTS.HEX_VALUES.TICK_SPACING[0x100]) >> UNISWAP_CONSTANTS.MATH.Q128;
+  if ((absTick & 0x200) !== 0)
+    ratio = (ratio * UNISWAP_CONSTANTS.HEX_VALUES.TICK_SPACING[0x200]) >> UNISWAP_CONSTANTS.MATH.Q128;
+  if ((absTick & 0x400) !== 0)
+    ratio = (ratio * UNISWAP_CONSTANTS.HEX_VALUES.TICK_SPACING[0x400]) >> UNISWAP_CONSTANTS.MATH.Q128;
+  if ((absTick & 0x800) !== 0)
+    ratio = (ratio * UNISWAP_CONSTANTS.HEX_VALUES.TICK_SPACING[0x800]) >> UNISWAP_CONSTANTS.MATH.Q128;
+  if ((absTick & 0x1000) !== 0)
+    ratio = (ratio * UNISWAP_CONSTANTS.HEX_VALUES.TICK_SPACING[0x1000]) >> UNISWAP_CONSTANTS.MATH.Q128;
+  if ((absTick & 0x2000) !== 0)
+    ratio = (ratio * UNISWAP_CONSTANTS.HEX_VALUES.TICK_SPACING[0x2000]) >> UNISWAP_CONSTANTS.MATH.Q128;
+  if ((absTick & 0x4000) !== 0)
+    ratio = (ratio * UNISWAP_CONSTANTS.HEX_VALUES.TICK_SPACING[0x4000]) >> UNISWAP_CONSTANTS.MATH.Q128;
+  if ((absTick & 0x8000) !== 0)
+    ratio = (ratio * UNISWAP_CONSTANTS.HEX_VALUES.TICK_SPACING[0x8000]) >> UNISWAP_CONSTANTS.MATH.Q128;
+  if ((absTick & 0x10000) !== 0)
+    ratio = (ratio * UNISWAP_CONSTANTS.HEX_VALUES.TICK_SPACING[0x10000]) >> UNISWAP_CONSTANTS.MATH.Q128;
+  if ((absTick & 0x20000) !== 0)
+    ratio = (ratio * UNISWAP_CONSTANTS.HEX_VALUES.TICK_SPACING[0x20000]) >> UNISWAP_CONSTANTS.MATH.Q128;
+  if ((absTick & 0x40000) !== 0)
+    ratio = (ratio * UNISWAP_CONSTANTS.HEX_VALUES.TICK_SPACING[0x40000]) >> UNISWAP_CONSTANTS.MATH.Q128;
+  if ((absTick & 0x80000) !== 0)
+    ratio = (ratio * UNISWAP_CONSTANTS.HEX_VALUES.TICK_SPACING[0x80000]) >> UNISWAP_CONSTANTS.MATH.Q128;
+
+  if (tick > 0) ratio = (UNISWAP_CONSTANTS.MATH.TWO ** UNISWAP_CONSTANTS.MATH.Q256 - BigInt(1)) / ratio;
+
+  // Shift right by 32 to get sqrtPriceX96
+  return ratio >> UNISWAP_CONSTANTS.MATH.Q32;
+};
