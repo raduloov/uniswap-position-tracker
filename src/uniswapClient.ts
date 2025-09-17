@@ -296,7 +296,6 @@ export class UniswapClient {
     // Calculate the ratio between current price and tick bounds
     // This gives us a more reliable way to calculate the price range
     const poolCurrentTick = parseInt(pos.pool.tick);
-    const tickSpacing = 60; // For 0.3% fee tier
 
     // Calculate how many ticks away the bounds are from current
     const ticksToLower = poolCurrentTick - tickLower;

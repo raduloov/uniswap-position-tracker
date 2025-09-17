@@ -29,9 +29,4 @@ export class Scheduler {
       console.log('Scheduler stopped');
     }
   }
-
-  runOnce(callback: () => void): void {
-    console.log(`Running task once at ${new Date().toISOString()}`);
-    callback();
-  }
 }

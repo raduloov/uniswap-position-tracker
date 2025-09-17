@@ -47,23 +47,4 @@ export class DataStorage {
       throw error;
     }
   }
-
-  async appendPosition(position: PositionData): Promise<void> {
-    await this.saveData([position]);
-  }
-
-  async getLatestEntry(): Promise<PositionData | null> {
-    const data = await this.loadData();
-    return data.length > 0 ? data[data.length - 1]! : null;
-  }
-
-  async getEntriesByDate(date: string): Promise<PositionData[]> {
-    const data = await this.loadData();
-    return data.filter(entry => entry.date === date);
-  }
-
-  async getEntriesByPositionId(positionId: string): Promise<PositionData[]> {
-    const data = await this.loadData();
-    return data.filter(entry => entry.positionId === positionId);
-  }
 }
