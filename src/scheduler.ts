@@ -1,4 +1,4 @@
-import cron from 'node-cron';
+import * as cron from 'node-cron';
 
 export class Scheduler {
   private task: cron.ScheduledTask | null = null;
@@ -16,9 +16,11 @@ export class Scheduler {
     this.task = cron.schedule(cronExpression, () => {
       console.log(`Running scheduled task at ${new Date().toISOString()}`);
       callback();
+    }, {
+      timezone: 'Europe/Sofia'
     });
     
-    console.log(`Task scheduled successfully. Will run daily at ${time}`);
+    console.log(`Task scheduled successfully. Will run daily at ${time} (Europe/Sofia timezone)`);
   }
 
   stop(): void {

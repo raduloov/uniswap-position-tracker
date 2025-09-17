@@ -54,7 +54,7 @@ export class DataStorage {
 
   async getLatestEntry(): Promise<PositionData | null> {
     const data = await this.loadData();
-    return data.length > 0 ? data[data.length - 1] : null;
+    return data.length > 0 ? data[data.length - 1]! : null;
   }
 
   async getEntriesByDate(date: string): Promise<PositionData[]> {
