@@ -1,5 +1,5 @@
 import * as cron from "node-cron";
-import { TIMEZONE } from "./constants";
+import { TIMEZONE } from "../constants";
 
 export class Scheduler {
   private task: cron.ScheduledTask | null = null;
@@ -8,7 +8,7 @@ export class Scheduler {
     const [hours, minutes] = time.split(":");
     const cronExpression = `${minutes} ${hours} * * *`;
 
-    console.log(`Scheduling task for ${time} daily (cron: ${cronExpression})`);
+    console.log(`\nScheduling task for ${time} daily (cron: ${cronExpression})`);
 
     if (this.task) {
       this.task.stop();

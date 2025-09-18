@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { PositionData } from "./types";
+import { PositionData } from "../types";
 
 export class DataStorage {
   private filePath: string;

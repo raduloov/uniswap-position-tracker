@@ -1,8 +1,8 @@
-import { PositionData } from "./types";
+import { PositionData } from "../types";
 import * as fs from "fs/promises";
 import * as path from "path";
-import { SupabaseStorage } from "./supabaseStorage";
-import { TIMEZONE } from "./constants";
+import { SupabaseStorage } from "../storage/supabaseStorage";
+import { TIMEZONE } from "../constants";
 
 export class HtmlGenerator {
   private htmlFilePath: string;
@@ -24,7 +24,7 @@ export class HtmlGenerator {
     await fs.mkdir(dir, { recursive: true });
 
     await fs.writeFile(this.htmlFilePath, html, "utf-8");
-    console.log(`\n📄 HTML report generated: ${this.htmlFilePath}`);
+    console.log(`📄 HTML report generated: ${this.htmlFilePath}`);
   }
 
   private async loadAllPositionData(): Promise<PositionData[]> {
@@ -82,7 +82,7 @@ export class HtmlGenerator {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uniswap Position Report - ${currentDate}</title>
+    <title>Uniswap Position Tracker - ${currentDate}</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -277,7 +277,7 @@ export class HtmlGenerator {
 </head>
 <body>
     <div class="container">
-        <h1>🦄 Uniswap V3 Position Report</h1>
+        <h1>🦄 Uniswap Position Tracker</h1>
         <div class="timestamp">Updated on ${formattedDateTime}</div>
         
         ${positionTables}
@@ -322,6 +322,13 @@ export class HtmlGenerator {
       ? `$${latestPosition.priceRange.lower.toFixed(2)} - $${latestPosition.priceRange.upper.toFixed(2)}`
       : `${latestPosition.tickLower} - ${latestPosition.tickUpper}`;
 
+    // Calculate position age in days
+    const oldestPosition = positions[positions.length - 1];
+    const oldestDate = oldestPosition ? new Date(oldestPosition.timestamp) : new Date();
+    const now = new Date();
+    const ageInDays = Math.floor((now.getTime() - oldestDate.getTime()) / (1000 * 60 * 60 * 24));
+    const ageText = ageInDays === 0 ? "New position" : ageInDays === 1 ? "1 day old" : `${ageInDays} days old`;
+
     const rows = positions
       .map((position, index) => {
         const previousPosition = index < positions.length - 1 ? positions[index + 1] || null : null;
@@ -335,11 +342,11 @@ export class HtmlGenerator {
                 <div>
                     <div class="position-title">
                         <span class="pair-name">${poolName}</span>
-                        <span class="protocol-badge">V3</span>
+                        <span class="protocol-badge">v3</span>
                         <span class="fee-badge">${feePercent}%</span>
                     </div>
                     <div class="position-id" style="font-weight: 600; font-size: 1.1em; color: #333;">Range: ${priceRange}</div>
-                    <div class="position-id">Position #${positionId}</div>
+                    <div class="position-id">Position #${positionId} • <span style="color: #667eea; font-weight: 600;">${ageText}</span></div>
                 </div>
             </div>
             

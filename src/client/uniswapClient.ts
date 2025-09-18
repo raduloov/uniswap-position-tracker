@@ -1,9 +1,9 @@
-import { getSqrtPriceX96FromTick } from "./utils/index";
+import { getSqrtPriceX96FromTick } from "../utils/index";
 import axios from "axios";
-import { GraphQLPosition, PositionData } from "./types";
-import { UNISWAP_CONSTANTS, STABLECOIN_SYMBOLS } from "./constants";
-import { getGraphEndpoint } from "./utils";
-import { buildPositionByIdQuery, buildPositionsByOwnerQuery } from "./schemas";
+import { GraphQLPosition, PositionData } from "../types";
+import { UNISWAP_CONSTANTS, STABLECOIN_SYMBOLS } from "../constants";
+import { getGraphEndpoint } from "../utils";
+import { buildPositionByIdQuery, buildPositionsByOwnerQuery } from "../schemas";
 
 export class UniswapClient {
   private subgraphUrl: string;

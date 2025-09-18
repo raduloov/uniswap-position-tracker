@@ -1,9 +1,9 @@
 import { config, validateConfig } from "./config";
-import { UniswapClient } from "./uniswapClient";
-import { DataStorage } from "./dataStorage";
-import { Scheduler } from "./scheduler";
-import { HtmlGenerator } from "./htmlGenerator";
-import { SupabaseStorage } from "./supabaseStorage";
+import { UniswapClient } from "./client/uniswapClient";
+import { DataStorage } from "./storage/dataStorage";
+import { Scheduler } from "./services/scheduler";
+import { HtmlGenerator } from "./services/htmlGenerator";
+import { SupabaseStorage } from "./storage/supabaseStorage";
 import { UNISWAP_CONSTANTS, TIMEZONE } from "./constants";
 
 class UniswapPositionTracker {
@@ -24,7 +24,7 @@ class UniswapPositionTracker {
 
   async checkPositions(): Promise<void> {
     try {
-      console.log("=".repeat(50));
+      console.log("\n" + "=".repeat(50));
       console.log(`Checking positions at ${new Date().toLocaleString("en-US", { timeZone: TIMEZONE.SOFIA })}`);
       console.log(`Wallet: ${config.walletAddress}`);
       console.log("=".repeat(50));
@@ -36,7 +36,7 @@ class UniswapPositionTracker {
         return;
       }
 
-      console.log(`Found ${positions.length} active position(s)`);
+      console.log(`\nFound ${positions.length} active position(s)`);
 
       for (const position of positions) {
         console.log(`\nPosition #${position.positionId}:`);
@@ -81,6 +81,8 @@ class UniswapPositionTracker {
         console.log(`    Total Fees: $${position.uncollectedFees.totalUSD?.toFixed(2)}`);
       }
 
+      console.log(); // Add blank line after last position
+
       // Save to Supabase if configured, otherwise use local file
       if (this.supabaseStorage.isEnabled()) {
         await this.supabaseStorage.savePositions(positions);
@@ -92,7 +94,7 @@ class UniswapPositionTracker {
       await this.htmlGenerator.generatePositionReport(positions);
 
       console.log("\n" + "=".repeat(50));
-      console.log("Position check completed");
+      console.log("Position check completed. Exiting...");
       console.log("=".repeat(50));
     } catch (error) {
       console.error("Error checking positions:", error);
@@ -101,19 +103,20 @@ class UniswapPositionTracker {
 
   async start(runOnce: boolean = false): Promise<void> {
     console.log("🚀 Uniswap Position Tracker Started");
-    console.log(`📊 Data will be saved to: ${config.dataFilePath}`);
-    
+
+    // Only show local file path if Supabase is not enabled
+    if (!this.supabaseStorage.isEnabled()) {
+      console.log(`📊 Data will be saved to: ${config.dataFilePath}`);
+    }
+
     if (runOnce) {
       console.log("🔄 Running once and exiting...");
-      console.log("-".repeat(50));
       await this.checkPositions();
       return;
     }
 
     console.log(`⏰ Scheduled to run daily at: ${config.scheduleTime}`);
-    console.log("-".repeat(50));
 
-    console.log("\nRunning initial check...");
     await this.checkPositions();
 
     this.scheduler.schedule(config.scheduleTime, () => this.checkPositions());
@@ -131,10 +134,10 @@ class UniswapPositionTracker {
 async function main() {
   try {
     const tracker = new UniswapPositionTracker();
-    
+
     // Check for --once flag
     const runOnce = process.argv.includes("--once");
-    
+
     await tracker.start(runOnce);
   } catch (error) {
     console.error("Fatal error:", error);
