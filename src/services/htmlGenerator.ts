@@ -254,6 +254,18 @@ export class HtmlGenerator {
             font-weight: 700;
             font-size: 1.1em;
         }
+        .price-change-positive {
+            color: #48bb78;
+            font-weight: 600;
+        }
+        .price-change-negative {
+            color: #f56565;
+            font-weight: 600;
+        }
+        .price-change-neutral {
+            color: #718096;
+            font-weight: 600;
+        }
         .summary-row {
             background: linear-gradient(to right, #f8f9fa, #ffffff);
             font-weight: 600;
@@ -389,7 +401,28 @@ export class HtmlGenerator {
       ? '<span class="status-badge status-in-range">In Range</span>'
       : '<span class="status-badge status-out-range">Out of Range</span>';
 
-    const currentPrice = position.priceRange ? `$${position.priceRange.current.toFixed(2)}` : "N/A";
+    // Calculate price percentage difference from previous entry
+    let currentPriceHtml = "";
+    if (position.priceRange) {
+      const basePrice = `$${position.priceRange.current.toFixed(2)}`;
+      
+      if (previousPosition && previousPosition.priceRange) {
+        const priceDiff = position.priceRange.current - previousPosition.priceRange.current;
+        const percentageChange = (priceDiff / previousPosition.priceRange.current) * 100;
+        
+        if (Math.abs(percentageChange) < 0.01) {
+          currentPriceHtml = basePrice;
+        } else {
+          const sign = percentageChange >= 0 ? "+" : "";
+          const className = percentageChange >= 0 ? "price-change-positive" : "price-change-negative";
+          currentPriceHtml = `${basePrice} <span class="${className}">(${sign}${percentageChange.toFixed(2)}%)</span>`;
+        }
+      } else {
+        currentPriceHtml = basePrice;
+      }
+    } else {
+      currentPriceHtml = "N/A";
+    }
 
     const date = new Date(position.timestamp);
     const dateStr = date
@@ -424,7 +457,7 @@ export class HtmlGenerator {
             <td><strong>$${position.totalValueUSD?.toFixed(2) || "0.00"}</strong></td>
             <td class="fees-total">$${position.uncollectedFees.totalUSD?.toFixed(2) || "0.00"}</td>
             <td class="fees-24h">${feesDifference}</td>
-            <td>${currentPrice}</td>
+            <td>${currentPriceHtml}</td>
             <td>${statusBadge}</td>
         </tr>`;
   }
