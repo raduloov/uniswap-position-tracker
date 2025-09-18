@@ -16,7 +16,7 @@ class UniswapPositionTracker {
     this.client = new UniswapClient(config.graphApiKey);
     this.storage = new DataStorage(config.dataFilePath);
     this.scheduler = new Scheduler();
-    this.htmlGenerator = new HtmlGenerator("./data/positions.html", config.dataFilePath);
+    this.htmlGenerator = new HtmlGenerator("./docs/index.html", config.dataFilePath);
   }
 
   async checkPositions(): Promise<void> {

@@ -1,0 +1,3 @@
+theme: jekyll-theme-primer
+title: Uniswap Position Tracker
+description: Automated Uniswap V3 liquidity position tracking with daily snapshots and historical analysis

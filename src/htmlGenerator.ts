@@ -6,7 +6,7 @@ export class HtmlGenerator {
   private htmlFilePath: string;
   private dataFilePath: string;
 
-  constructor(htmlFilePath: string = "./data/positions.html", dataFilePath: string = "./data/positions.json") {
+  constructor(htmlFilePath: string = "./docs/index.html", dataFilePath: string = "./data/positions.json") {
     this.htmlFilePath = htmlFilePath;
     this.dataFilePath = dataFilePath;
   }
