@@ -31,15 +31,16 @@ jobs:
       uses: actions/cache@v4
       with:
         path: dist
-        key: ${{ runner.os }}-tsc-${{ hashFiles('src/**/*.ts', 'tsconfig.json') }}
+        key: ${{ runner.os }}-tsc-v2-${{ hashFiles('src/**/*.ts', 'tsconfig.json') }}
     
-    - name: Cache position data
-      uses: actions/cache@v4
-      with:
-        path: data/positions.json
-        key: positions-${{ github.run_number }}
-        restore-keys: |
-          positions-
+    # Restore previous data from the repository
+    - name: Restore previous position data
+      run: |
+        mkdir -p data
+        # Try to get the file from the repository's main branch
+        git fetch origin main
+        git show origin/main:data/positions.json > data/positions.json 2>/dev/null || echo "[]" > data/positions.json
+        echo "Restored $(cat data/positions.json | jq '. | length') historical entries"
     
     - name: Install dependencies
       run: npm ci
@@ -53,7 +54,22 @@ jobs:
         WALLET_ADDRESS: ${{ secrets.WALLET_ADDRESS }}
         GRAPH_API_KEY: ${{ secrets.GRAPH_API_KEY }}
         POSITION_ID: ${{ secrets.POSITION_ID }}
-      run: npm run start:once
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        DATA_FILE_PATH: ./data/positions.json
+      run: |
+        mkdir -p data
+        # Initialize empty JSON if Supabase not configured
+        echo "[]" > data/positions.json
+        npm run start:once
+    
+    - name: Upload data artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: position-data
+        path: |
+          data/positions.json
+          docs/index.html
     
     - name: Setup Pages
       uses: actions/configure-pages@v4

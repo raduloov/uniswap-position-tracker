@@ -1,14 +1,17 @@
 import { PositionData } from "./types";
 import * as fs from "fs/promises";
 import * as path from "path";
+import { SupabaseStorage } from "./supabaseStorage";
 
 export class HtmlGenerator {
   private htmlFilePath: string;
   private dataFilePath: string;
+  private supabaseStorage: SupabaseStorage;
 
   constructor(htmlFilePath: string = "./docs/index.html", dataFilePath: string = "./data/positions.json") {
     this.htmlFilePath = htmlFilePath;
     this.dataFilePath = dataFilePath;
+    this.supabaseStorage = new SupabaseStorage();
   }
 
   async generatePositionReport(_positions: PositionData[]): Promise<void> {
@@ -25,6 +28,16 @@ export class HtmlGenerator {
 
   private async loadAllPositionData(): Promise<PositionData[]> {
     try {
+      // Try to load from Supabase first
+      if (this.supabaseStorage.isEnabled()) {
+        const supabaseData = await this.supabaseStorage.loadRecentPositions(30);
+        if (supabaseData.length > 0) {
+          console.log(`📊 Loaded ${supabaseData.length} entries from Supabase`);
+          return supabaseData;
+        }
+      }
+      
+      // Fall back to local file
       if (await fs.access(this.dataFilePath).then(() => true).catch(() => false)) {
         const data = await fs.readFile(this.dataFilePath, "utf-8");
         return JSON.parse(data) as PositionData[];

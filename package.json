@@ -21,6 +21,7 @@
     "typescript": "^5.9.2"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
     "axios": "^1.12.2",
     "dotenv": "^17.2.2",
     "node-cron": "^4.2.1"

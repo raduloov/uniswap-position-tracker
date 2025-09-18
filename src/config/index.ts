@@ -1,5 +1,4 @@
 import dotenv from "dotenv";
-import path from "path";
 
 dotenv.config();
 
@@ -7,7 +6,7 @@ export const config = {
   walletAddress: process.env["WALLET_ADDRESS"] || "",
   positionId: process.env["POSITION_ID"],
   scheduleTime: process.env["SCHEDULE_TIME"] || "09:00",
-  dataFilePath: process.env["DATA_FILE_PATH"] || path.join(__dirname, "../data/positions.json"),
+  dataFilePath: process.env["DATA_FILE_PATH"] || "./data/positions.json",
   graphApiKey: process.env["GRAPH_API_KEY"] || ""
 };
 

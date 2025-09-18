@@ -3,11 +3,13 @@ import { UniswapClient } from "./uniswapClient";
 import { DataStorage } from "./dataStorage";
 import { Scheduler } from "./scheduler";
 import { HtmlGenerator } from "./htmlGenerator";
+import { SupabaseStorage } from "./supabaseStorage";
 import { UNISWAP_CONSTANTS, TIMEZONE } from "./constants";
 
 class UniswapPositionTracker {
   private client: UniswapClient;
   private storage: DataStorage;
+  private supabaseStorage: SupabaseStorage;
   private scheduler: Scheduler;
   private htmlGenerator: HtmlGenerator;
 
@@ -15,6 +17,7 @@ class UniswapPositionTracker {
     validateConfig();
     this.client = new UniswapClient(config.graphApiKey);
     this.storage = new DataStorage(config.dataFilePath);
+    this.supabaseStorage = new SupabaseStorage();
     this.scheduler = new Scheduler();
     this.htmlGenerator = new HtmlGenerator("./docs/index.html", config.dataFilePath);
   }
@@ -78,6 +81,10 @@ class UniswapPositionTracker {
         console.log(`    Total Fees: $${position.uncollectedFees.totalUSD?.toFixed(2)}`);
       }
 
+      // Save to Supabase if configured
+      await this.supabaseStorage.savePositions(positions);
+      
+      // Also save locally for HTML generation
       await this.storage.saveData(positions);
       console.log(`\nSaved ${positions.length} position(s) to ${config.dataFilePath}`);
 
