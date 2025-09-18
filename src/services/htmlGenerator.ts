@@ -63,7 +63,7 @@ export class HtmlGenerator {
       day: "numeric",
       timeZone: TIMEZONE.SOFIA
     });
-    const currentTime = now.toLocaleTimeString("en-US", {
+    const currentTime = now.toLocaleTimeString("en-GB", {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
@@ -96,10 +96,19 @@ export class HtmlGenerator {
             max-width: 1100px;
             margin: 0 auto;
         }
+        .page-header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .unicorn-emoji {
+            font-size: 6em;
+            display: block;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));
+        }
         h1 {
             color: white;
             text-align: center;
-            margin-bottom: 10px;
+            margin: 0;
             font-size: 2.5em;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
         }
@@ -190,9 +199,9 @@ export class HtmlGenerator {
             border-top-right-radius: 6px;
         }
         th:nth-child(1) { width: 20%; } /* Date */
-        th:nth-child(2) { width: 18%; } /* Total Value */
+        th:nth-child(2) { width: 14%; } /* 24h Fees */
         th:nth-child(3) { width: 18%; } /* Total Fees */
-        th:nth-child(4) { width: 14%; } /* 24h Fees */
+        th:nth-child(4) { width: 18%; } /* Total Value */
         th:nth-child(5) { width: 15%; } /* Current Price */
         th:nth-child(6) { width: 15%; } /* Status */
         td {
@@ -203,9 +212,9 @@ export class HtmlGenerator {
             white-space: nowrap;
         }
         td:nth-child(1) { width: 20%; } /* Date */
-        td:nth-child(2) { width: 18%; } /* Total Value */
+        td:nth-child(2) { width: 14%; } /* 24h Fees */
         td:nth-child(3) { width: 18%; } /* Total Fees */
-        td:nth-child(4) { width: 14%; } /* 24h Fees */
+        td:nth-child(4) { width: 18%; } /* Total Value */
         td:nth-child(5) { width: 15%; } /* Current Price */
         td:nth-child(6) { width: 15%; } /* Status */
         tr:last-child td {
@@ -299,7 +308,10 @@ export class HtmlGenerator {
 </head>
 <body>
     <div class="container">
-        <h1>🦄 Uniswap Position Tracker</h1>
+        <div class="page-header">
+            <span class="unicorn-emoji">🦄</span>
+            <h1>Uniswap Position Tracker</h1>
+        </div>
         <div class="timestamp">Updated on ${formattedDateTime}</div>
         
         ${positionTables}
@@ -377,9 +389,9 @@ export class HtmlGenerator {
                     <thead>
                         <tr>
                             <th>Date</th>
-                            <th>Total Value (USD)</th>
-                            <th>Total Fees (USD)</th>
                             <th>24h Fees</th>
+                            <th>Total Fees (USD)</th>
+                            <th>Total Value (USD)</th>
                             <th>Current Price (USD)</th>
                             <th>Status</th>
                         </tr>
@@ -406,11 +418,11 @@ export class HtmlGenerator {
     let currentPriceHtml = "";
     if (position.priceRange) {
       const basePrice = `$${position.priceRange.current.toFixed(2)}`;
-      
+
       if (previousPosition && previousPosition.priceRange) {
         const priceDiff = position.priceRange.current - previousPosition.priceRange.current;
         const percentageChange = (priceDiff / previousPosition.priceRange.current) * 100;
-        
+
         if (Math.abs(percentageChange) < 0.01) {
           currentPriceHtml = basePrice;
         } else {
@@ -434,7 +446,7 @@ export class HtmlGenerator {
         timeZone: TIMEZONE.SOFIA
       })
       .toUpperCase();
-    const timeStr = date.toLocaleTimeString("en-US", {
+    const timeStr = date.toLocaleTimeString("en-GB", {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
@@ -452,12 +464,36 @@ export class HtmlGenerator {
       feesDifferenceHtml = `<span style="color: #718096;">-</span>`;
     }
 
+    // Calculate total value percentage difference from previous entry
+    let totalValueHtml = "";
+    const baseTotalValue = `<strong>$${position.totalValueUSD?.toFixed(2) || "0.00"}</strong>`;
+
+    if (
+      position.totalValueUSD &&
+      previousPosition &&
+      previousPosition.totalValueUSD &&
+      previousPosition.totalValueUSD > 0
+    ) {
+      const valueDiff = position.totalValueUSD - previousPosition.totalValueUSD;
+      const percentageChange = (valueDiff / previousPosition.totalValueUSD) * 100;
+
+      if (Math.abs(percentageChange) < 0.01) {
+        totalValueHtml = baseTotalValue;
+      } else {
+        const sign = percentageChange >= 0 ? "+" : "";
+        const className = percentageChange >= 0 ? "price-change-positive" : "price-change-negative";
+        totalValueHtml = `${baseTotalValue} <span class="${className}">(${sign}${percentageChange.toFixed(2)}%)</span>`;
+      }
+    } else {
+      totalValueHtml = baseTotalValue;
+    }
+
     return `
         <tr>
             <td>${fullDateStr}</td>
-            <td><strong>$${position.totalValueUSD?.toFixed(2) || "0.00"}</strong></td>
-            <td class="fees-total">$${position.uncollectedFees.totalUSD?.toFixed(2) || "0.00"}</td>
             <td>${feesDifferenceHtml}</td>
+            <td class="fees-total">$${position.uncollectedFees.totalUSD?.toFixed(2) || "0.00"}</td>
+            <td>${totalValueHtml}</td>
             <td>${currentPriceHtml}</td>
             <td>${statusBadge}</td>
         </tr>`;
