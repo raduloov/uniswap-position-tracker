@@ -81,12 +81,13 @@ class UniswapPositionTracker {
         console.log(`    Total Fees: $${position.uncollectedFees.totalUSD?.toFixed(2)}`);
       }
 
-      // Save to Supabase if configured
-      await this.supabaseStorage.savePositions(positions);
-      
-      // Also save locally for HTML generation
-      await this.storage.saveData(positions);
-      console.log(`\nSaved ${positions.length} position(s) to ${config.dataFilePath}`);
+      // Save to Supabase if configured, otherwise use local file
+      if (this.supabaseStorage.isEnabled()) {
+        await this.supabaseStorage.savePositions(positions);
+      } else {
+        await this.storage.saveData(positions);
+        console.log(`\nSaved ${positions.length} position(s) to ${config.dataFilePath}`);
+      }
 
       await this.htmlGenerator.generatePositionReport(positions);
 
