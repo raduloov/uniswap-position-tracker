@@ -11,6 +11,8 @@ This is a TypeScript application that automatically tracks Uniswap V3 liquidity 
 - Tracks uncollected fees with USD values
 - Runs automatically at scheduled time daily using node-cron
 - Saves historical data to JSON file for trend analysis
+- Generates HTML reports with historical position tracking tables
+- Tracks 24-hour fee changes between position snapshots
 
 ## Technical Architecture
 
@@ -22,27 +24,76 @@ This is a TypeScript application that automatically tracks Uniswap V3 liquidity 
 
 ### Core Components
 
-1. **src/uniswapClient.ts**
+1. **src/index.ts**
+   - Main application entry point
+   - Class-based architecture with `UniswapPositionTracker` class
+   - Handles scheduling and orchestration
+   - Supports `--once` flag for single run
+   - Enhanced console output with formatting and timezone display
+
+2. **src/uniswapClient.ts**
    - Handles all Graph API interactions
    - Implements Uniswap V3 math for position calculations
+   - Uses modularized utilities and schemas
    - Key methods:
      - `getPositions()`: Fetches positions from Graph
      - `transformPosition()`: Converts Graph data to our format
      - `getAmountsForLiquidity()`: Calculates token amounts from liquidity
      - `calculateFeeGrowthInside()`: Calculates uncollected fees
 
-2. **src/index.ts**
-   - Main application entry point
-   - Handles scheduling and orchestration
-   - Supports `--once` flag for single run
-
 3. **src/dataStorage.ts**
    - Manages JSON file persistence
    - Appends new data to maintain history
+   - Type-safe with TypeScript interfaces
 
 4. **src/scheduler.ts**
    - Handles cron-based scheduling
    - Runs task at specified time daily
+   - Timezone-aware (uses Sofia timezone)
+
+5. **src/htmlGenerator.ts**
+   - Generates HTML reports from position data
+   - Creates historical tracking tables for each position
+   - Shows daily snapshots with key metrics:
+     - Total Value (USD)
+     - Total Fees (USD)
+     - 24h Fee changes
+     - Position Range and Current Price
+     - In/Out of Range status
+   - Responsive design with modern UI
+   - Groups positions by ID for multi-position tracking
+
+### Modular Architecture
+
+6. **src/config/**
+   - `index.ts`: Environment variable loading and validation
+   - `schema.ts`: TypeScript interfaces for configuration
+   - Validates required parameters (WALLET_ADDRESS or POSITION_ID)
+
+7. **src/constants/**
+   - `index.ts`: Centralized constants and configuration
+   - Graph API configuration (endpoints, limits)
+   - Uniswap V3 math constants (Q32, Q96, Q128)
+   - Stablecoin symbols for USD value determination
+   - Timezone configuration
+
+8. **src/types/**
+   - `index.ts`: TypeScript interfaces
+   - `GraphQLPosition`: Graph API response structure
+   - `PositionData`: Internal position data model
+   - Clear separation between API and internal types
+
+9. **src/schemas/**
+   - `index.ts`: GraphQL query builders
+   - `buildPositionByIdQuery()`: Query single position
+   - `buildPositionsByOwnerQuery()`: Query wallet positions
+   - Reusable field definitions for maintainability
+
+10. **src/utils/**
+   - `index.ts`: Utility functions
+   - `getGraphEndpoint()`: Constructs Graph API endpoint
+   - `getSqrtPriceX96FromTick()`: Uniswap V3 tick-to-price conversion
+   - Mathematical helper functions
 
 ## Important Implementation Details
 
@@ -61,6 +112,8 @@ This is a TypeScript application that automatically tracks Uniswap V3 liquidity 
 - Converts ticks to human-readable prices
 - For WETH/USDT: shows range in USDT (e.g., $4,400 - $4,800)
 - Uses relative calculation from current price for accuracy
+- Enhanced mathematical precision with BigInt operations
+- Range status indicators (✅/❌) for in-range visualization
 
 ### USD Value Determination
 - Identifies stablecoins (USDT, USDC, DAI, etc.) and uses them as $1 reference
@@ -111,6 +164,15 @@ The app saves position data in JSON format with:
 - Price range (ticks and human-readable)
 - Uncollected fees with USD values
 - Pool state (address, current tick, sqrtPrice)
+- Timestamp and date for historical tracking
+
+### HTML Report Features
+- **Historical Position Table**: Each position tracked over time
+- **Date Format**: Day of week + date (e.g., THU, SEP 18)
+- **24h Fees Column**: Shows fee changes between snapshots (+$X.XX or -$X.XX)
+- **Status Badges**: Visual indicators for In Range/Out of Range
+- **Responsive Design**: Works on desktop and mobile devices
+- **Auto-generated**: Updates with each cron run
 
 ## Known Issues and Solutions
 
@@ -139,10 +201,10 @@ To test the application:
 1. Set up `.env` with valid wallet address
 2. Run `npm run dev -- --once` for immediate test
 3. Check `data/positions.json` for output
-4. Verify calculations match Uniswap interface
+4. Check `data/positions.html` for HTML report
+5. Verify calculations match Uniswap interface
 
 ## Dependencies
-- **ethers**: Ethereum utilities (for RPC fallback if needed)
 - **axios**: HTTP client for Graph API
 - **node-cron**: Scheduling daily runs
 - **dotenv**: Environment variable management
@@ -152,14 +214,26 @@ To test the application:
 ```
 uniswap-position-tracker/
 ├── src/
-│   ├── index.ts           # Main entry point
+│   ├── index.ts           # Main entry point (class-based)
 │   ├── uniswapClient.ts   # Graph API & calculations
 │   ├── dataStorage.ts     # File persistence
-│   ├── scheduler.ts       # Cron scheduling
-│   ├── config.ts          # Configuration management
-│   └── types.ts           # TypeScript interfaces
+│   ├── scheduler.ts       # Cron scheduling (timezone-aware)
+│   ├── htmlGenerator.ts   # HTML report generation
+│   ├── config/
+│   │   ├── index.ts       # Config loading & validation
+│   │   └── schema.ts      # Config TypeScript interfaces
+│   ├── constants/
+│   │   └── index.ts       # Centralized constants
+│   ├── schemas/
+│   │   └── index.ts       # GraphQL query builders
+│   ├── types/
+│   │   └── index.ts       # TypeScript interfaces
+│   ├── utils/
+│   │   └── index.ts       # Utility functions
+│   └── services/          # Service modules (future)
 ├── data/                  # Output directory
-│   └── positions.json     # Historical position data
+│   ├── positions.json     # Historical position data
+│   └── positions.html     # HTML report with tables
 ├── .env                   # Configuration
 ├── tsconfig.json          # TypeScript config
 └── package.json           # Dependencies
@@ -170,3 +244,6 @@ uniswap-position-tracker/
 - Uniswap V3 math is complex; be careful when modifying calculations
 - Always test with small positions first
 - Keep historical data backed up
+- Math constants are centralized in `src/constants/index.ts`
+- GraphQL queries can be modified in `src/schemas/index.ts`
+- Configuration validation ensures either WALLET_ADDRESS or POSITION_ID is provided

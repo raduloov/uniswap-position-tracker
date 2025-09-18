@@ -2,18 +2,21 @@ import { config, validateConfig } from "./config";
 import { UniswapClient } from "./uniswapClient";
 import { DataStorage } from "./dataStorage";
 import { Scheduler } from "./scheduler";
+import { HtmlGenerator } from "./htmlGenerator";
 import { UNISWAP_CONSTANTS, TIMEZONE } from "./constants";
 
 class UniswapPositionTracker {
   private client: UniswapClient;
   private storage: DataStorage;
   private scheduler: Scheduler;
+  private htmlGenerator: HtmlGenerator;
 
   constructor() {
     validateConfig();
     this.client = new UniswapClient(config.graphApiKey);
     this.storage = new DataStorage(config.dataFilePath);
     this.scheduler = new Scheduler();
+    this.htmlGenerator = new HtmlGenerator("./data/positions.html", config.dataFilePath);
   }
 
   async checkPositions(): Promise<void> {
@@ -77,6 +80,8 @@ class UniswapPositionTracker {
 
       await this.storage.saveData(positions);
       console.log(`\nSaved ${positions.length} position(s) to ${config.dataFilePath}`);
+
+      await this.htmlGenerator.generatePositionReport(positions);
 
       console.log("\n" + "=".repeat(50));
       console.log("Position check completed");
