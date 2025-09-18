@@ -91,9 +91,17 @@ class UniswapPositionTracker {
     }
   }
 
-  async start(): Promise<void> {
+  async start(runOnce: boolean = false): Promise<void> {
     console.log("🚀 Uniswap Position Tracker Started");
     console.log(`📊 Data will be saved to: ${config.dataFilePath}`);
+    
+    if (runOnce) {
+      console.log("🔄 Running once and exiting...");
+      console.log("-".repeat(50));
+      await this.checkPositions();
+      return;
+    }
+
     console.log(`⏰ Scheduled to run daily at: ${config.scheduleTime}`);
     console.log("-".repeat(50));
 
@@ -115,8 +123,11 @@ class UniswapPositionTracker {
 async function main() {
   try {
     const tracker = new UniswapPositionTracker();
-
-    await tracker.start();
+    
+    // Check for --once flag
+    const runOnce = process.argv.includes("--once");
+    
+    await tracker.start(runOnce);
   } catch (error) {
     console.error("Fatal error:", error);
     process.exit(0);

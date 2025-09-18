@@ -147,7 +147,7 @@ DATA_FILE_PATH=./data/positions.json
 npm run dev
 
 # Run once immediately
-npm run dev -- --once
+npm run dev:once
 
 # Build TypeScript
 npm run build
@@ -199,7 +199,7 @@ The app saves position data in JSON format with:
 ## Testing
 To test the application:
 1. Set up `.env` with valid wallet address
-2. Run `npm run dev -- --once` for immediate test
+2. Run `npm run dev:once` for immediate test
 3. Check `data/positions.json` for output
 4. Check `data/positions.html` for HTML report
 5. Verify calculations match Uniswap interface

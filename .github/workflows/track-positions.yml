@@ -1,0 +1,55 @@
+name: Track Uniswap Positions
+
+on:
+  schedule:
+    # Runs every 2 minutes for testing (change back to '0 9 * * *' for daily)
+    - cron: '*/2 * * * *'
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  track:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Cache TypeScript build
+      id: cache-dist
+      uses: actions/cache@v4
+      with:
+        path: dist
+        key: ${{ runner.os }}-tsc-${{ hashFiles('src/**/*.ts', 'tsconfig.json') }}
+        restore-keys: |
+          ${{ runner.os }}-tsc-
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build TypeScript
+      if: steps.cache-dist.outputs.cache-hit != 'true'
+      run: npm run build
+    
+    - name: Run position tracker
+      env:
+        WALLET_ADDRESS: ${{ secrets.WALLET_ADDRESS }}
+        GRAPH_API_KEY: ${{ secrets.GRAPH_API_KEY }}
+        POSITION_ID: ${{ secrets.POSITION_ID }}
+        DATA_FILE_PATH: ./data/positions.json
+        # Note: SCHEDULE_TIME not needed since we use --once flag
+      run: npm run start:once
+    
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add data/positions.json docs/index.html
+        git diff --staged --quiet || git commit -m "Update position data [$(date +'%Y-%m-%d %H:%M')]"
+        git push
