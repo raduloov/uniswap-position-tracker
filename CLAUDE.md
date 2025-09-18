@@ -170,6 +170,8 @@ The app saves position data in JSON format with:
 - **Historical Position Table**: Each position tracked over time
 - **Date Format**: Day of week + date (e.g., THU, SEP 18)
 - **24h Fees Column**: Shows fee changes between snapshots (+$X.XX or -$X.XX)
+- **Current Price Column**: Shows current price with percentage change from previous entry in parentheses (e.g., $3,450.23 (+2.45%))
+- **Price Change Indicators**: Color-coded percentage changes (green for positive, red for negative)
 - **Status Badges**: Visual indicators for In Range/Out of Range
 - **Responsive Design**: Works on desktop and mobile devices
 - **Auto-generated**: Updates with each cron run

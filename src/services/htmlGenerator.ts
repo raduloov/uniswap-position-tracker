@@ -442,13 +442,13 @@ export class HtmlGenerator {
     const fullDateStr = `${dateStr}, ${timeStr}`;
 
     // Calculate 24h fee difference
-    let feesDifference = "";
+    let feesDifferenceHtml = "";
     if (previousPosition && previousPosition.uncollectedFees?.totalUSD && position.uncollectedFees?.totalUSD) {
       const diff = position.uncollectedFees.totalUSD - previousPosition.uncollectedFees.totalUSD;
       const sign = diff >= 0 ? "+" : "";
-      feesDifference = `${sign}$${Math.abs(diff).toFixed(2)}`;
+      feesDifferenceHtml = `<span class="fees-24h">${sign}$${Math.abs(diff).toFixed(2)}</span>`;
     } else {
-      feesDifference = "-";
+      feesDifferenceHtml = `<span style="color: #718096;">-</span>`;
     }
 
     return `
@@ -456,7 +456,7 @@ export class HtmlGenerator {
             <td>${fullDateStr}</td>
             <td><strong>$${position.totalValueUSD?.toFixed(2) || "0.00"}</strong></td>
             <td class="fees-total">$${position.uncollectedFees.totalUSD?.toFixed(2) || "0.00"}</td>
-            <td class="fees-24h">${feesDifference}</td>
+            <td>${feesDifferenceHtml}</td>
             <td>${currentPriceHtml}</td>
             <td>${statusBadge}</td>
         </tr>`;
