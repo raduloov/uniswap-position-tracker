@@ -171,8 +171,8 @@ export class HtmlGenerator {
             max-width: 100%;
         }
         th {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: #f7f8fa;
+            color: #4a5568;
             padding: 10px 8px;
             text-align: left;
             font-weight: 600;
@@ -180,6 +180,13 @@ export class HtmlGenerator {
             text-transform: uppercase;
             letter-spacing: 0.3px;
             white-space: nowrap;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        th:first-child {
+            border-top-left-radius: 6px;
+        }
+        th:last-child {
+            border-top-right-radius: 6px;
         }
         th:nth-child(1) { width: 20%; } /* Date */
         th:nth-child(2) { width: 18%; } /* Total Value */
@@ -242,6 +249,11 @@ export class HtmlGenerator {
             font-weight: 700;
             font-size: 1.1em;
         }
+        .fees-24h {
+            color: #48bb78;
+            font-weight: 700;
+            font-size: 1.1em;
+        }
         .summary-row {
             background: linear-gradient(to right, #f8f9fa, #ffffff);
             font-weight: 600;
@@ -265,9 +277,6 @@ export class HtmlGenerator {
             }
             .total-value {
                 margin-top: 10px;
-            }
-            table {
-                font-size: 0.85em;
             }
             th, td {
                 padding: 8px;
@@ -404,8 +413,7 @@ export class HtmlGenerator {
     if (previousPosition && previousPosition.uncollectedFees?.totalUSD && position.uncollectedFees?.totalUSD) {
       const diff = position.uncollectedFees.totalUSD - previousPosition.uncollectedFees.totalUSD;
       const sign = diff >= 0 ? "+" : "";
-      const color = diff >= 0 ? "#48bb78" : "#f56565";
-      feesDifference = `<span style="color: ${color}; font-weight: 600;">${sign}$${diff.toFixed(2)}</span>`;
+      feesDifference = `${sign}$${Math.abs(diff).toFixed(2)}`;
     } else {
       feesDifference = "-";
     }
@@ -415,7 +423,7 @@ export class HtmlGenerator {
             <td>${fullDateStr}</td>
             <td><strong>$${position.totalValueUSD?.toFixed(2) || "0.00"}</strong></td>
             <td class="fees-total">$${position.uncollectedFees.totalUSD?.toFixed(2) || "0.00"}</td>
-            <td>${feesDifference}</td>
+            <td class="fees-24h">${feesDifference}</td>
             <td>${currentPrice}</td>
             <td>${statusBadge}</td>
         </tr>`;
