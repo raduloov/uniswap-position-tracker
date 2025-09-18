@@ -35,7 +35,11 @@
             padding: 20px;
             margin-bottom: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .table-container {
             overflow-x: auto;
+            margin: 0 -20px;
+            padding: 0 20px;
         }
         .position-header {
             display: flex;
@@ -46,9 +50,31 @@
             border-bottom: 2px solid #f0f0f0;
         }
         .position-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .pair-name {
             font-size: 1.5em;
             font-weight: 600;
             color: #333;
+        }
+        .protocol-badge, .fee-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .protocol-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .fee-badge {
+            background: #e9ecef;
+            color: #495057;
         }
         .position-id {
             color: #666;
@@ -173,31 +199,135 @@
 <body>
     <div class="container">
         <h1>🦄 Uniswap V3 Position Report</h1>
-        <div class="timestamp">Updated on September 18, 2025 at 14:02</div>
+        <div class="timestamp">Updated on September 18, 2025 at 14:23</div>
         
         
         <div class="position-card">
             <div class="position-header">
                 <div>
-                    <div class="position-title">WETH/USDT - 0.30% Fee Tier</div>
-                    <div class="position-id" style="font-weight: 600; font-size: 1.1em; color: #333;">Range: $4403.11 - $4788.93</div>
+                    <div class="position-title">
+                        <span class="pair-name">WETH / USDT</span>
+                        <span class="protocol-badge">V3</span>
+                        <span class="fee-badge">0.3%</span>
+                    </div>
+                    <div class="position-id" style="font-weight: 600; font-size: 1.1em; color: #333;">Range: $4402.96 - $4788.77</div>
                     <div class="position-id">Position #1082791</div>
                 </div>
             </div>
             
-            <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Total Value (USD)</th>
-                        <th>Total Fees (USD)</th>
-                        <th>24h Fees</th>
-                        <th>Current Price (USD)</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Total Value (USD)</th>
+                            <th>Total Fees (USD)</th>
+                            <th>24h Fees</th>
+                            <th>Current Price (USD)</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+        <tr>
+            <td>THU, SEP 18, 14:23</td>
+            <td><strong>$6152.91</strong></td>
+            <td class="fees-total">$145.20</td>
+            <td><span style="color: #48bb78; font-weight: 600;">+$0.00</span></td>
+            <td>$4585.39</td>
+            <td><span class="status-badge status-in-range">In Range</span></td>
+        </tr>
+
+        <tr>
+            <td>THU, SEP 18, 14:21</td>
+            <td><strong>$6152.91</strong></td>
+            <td class="fees-total">$145.20</td>
+            <td><span style="color: #48bb78; font-weight: 600;">+$0.00</span></td>
+            <td>$4585.39</td>
+            <td><span class="status-badge status-in-range">In Range</span></td>
+        </tr>
+
+        <tr>
+            <td>THU, SEP 18, 14:20</td>
+            <td><strong>$6152.91</strong></td>
+            <td class="fees-total">$145.20</td>
+            <td><span style="color: #48bb78; font-weight: 600;">+$0.00</span></td>
+            <td>$4585.39</td>
+            <td><span class="status-badge status-in-range">In Range</span></td>
+        </tr>
+
+        <tr>
+            <td>THU, SEP 18, 14:19</td>
+            <td><strong>$6152.90</strong></td>
+            <td class="fees-total">$145.20</td>
+            <td><span style="color: #48bb78; font-weight: 600;">+$0.00</span></td>
+            <td>$4585.39</td>
+            <td><span class="status-badge status-in-range">In Range</span></td>
+        </tr>
+
+        <tr>
+            <td>THU, SEP 18, 14:17</td>
+            <td><strong>$6152.93</strong></td>
+            <td class="fees-total">$145.20</td>
+            <td><span style="color: #48bb78; font-weight: 600;">+$0.00</span></td>
+            <td>$4585.42</td>
+            <td><span class="status-badge status-in-range">In Range</span></td>
+        </tr>
+
+        <tr>
+            <td>THU, SEP 18, 14:16</td>
+            <td><strong>$6152.92</strong></td>
+            <td class="fees-total">$145.20</td>
+            <td><span style="color: #48bb78; font-weight: 600;">+$0.00</span></td>
+            <td>$4585.42</td>
+            <td><span class="status-badge status-in-range">In Range</span></td>
+        </tr>
+
+        <tr>
+            <td>THU, SEP 18, 14:15</td>
+            <td><strong>$6152.93</strong></td>
+            <td class="fees-total">$145.20</td>
+            <td><span style="color: #48bb78; font-weight: 600;">+$0.00</span></td>
+            <td>$4585.42</td>
+            <td><span class="status-badge status-in-range">In Range</span></td>
+        </tr>
+
+        <tr>
+            <td>THU, SEP 18, 14:12</td>
+            <td><strong>$6152.93</strong></td>
+            <td class="fees-total">$145.20</td>
+            <td><span style="color: #48bb78; font-weight: 600;">+$0.00</span></td>
+            <td>$4585.43</td>
+            <td><span class="status-badge status-in-range">In Range</span></td>
+        </tr>
+
+        <tr>
+            <td>THU, SEP 18, 14:11</td>
+            <td><strong>$6152.94</strong></td>
+            <td class="fees-total">$145.20</td>
+            <td><span style="color: #48bb78; font-weight: 600;">+$0.00</span></td>
+            <td>$4585.44</td>
+            <td><span class="status-badge status-in-range">In Range</span></td>
+        </tr>
+
+        <tr>
+            <td>THU, SEP 18, 14:05</td>
+            <td><strong>$6153.00</strong></td>
+            <td class="fees-total">$145.19</td>
+            <td><span style="color: #48bb78; font-weight: 600;">+$0.00</span></td>
+            <td>$4585.53</td>
+            <td><span class="status-badge status-in-range">In Range</span></td>
+        </tr>
+
+        <tr>
+            <td>THU, SEP 18, 14:05</td>
+            <td><strong>$6153.00</strong></td>
+            <td class="fees-total">$145.19</td>
+            <td><span style="color: #48bb78; font-weight: 600;">+$0.00</span></td>
+            <td>$4585.53</td>
+            <td><span class="status-badge status-in-range">In Range</span></td>
+        </tr>
+
         <tr>
             <td>THU, SEP 18, 14:02</td>
             <td><strong>$6153.01</strong></td>
@@ -260,8 +390,9 @@
             <td>$4585.48</td>
             <td><span class="status-badge status-in-range">In Range</span></td>
         </tr>
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
         </div>
         
         <div class="footer">

@@ -19,10 +19,10 @@ export class HtmlGenerator {
     // Load all historical data
     const allData = await this.loadAllPositionData();
     const html = this.buildHtml(allData);
-    
+
     const dir = path.dirname(this.htmlFilePath);
     await fs.mkdir(dir, { recursive: true });
-    
+
     await fs.writeFile(this.htmlFilePath, html, "utf-8");
     console.log(`\n📄 HTML report generated: ${this.htmlFilePath}`);
   }
@@ -37,9 +37,14 @@ export class HtmlGenerator {
           return supabaseData;
         }
       }
-      
+
       // Fall back to local file
-      if (await fs.access(this.dataFilePath).then(() => true).catch(() => false)) {
+      if (
+        await fs
+          .access(this.dataFilePath)
+          .then(() => true)
+          .catch(() => false)
+      ) {
         const data = await fs.readFile(this.dataFilePath, "utf-8");
         return JSON.parse(data) as PositionData[];
       }
@@ -109,7 +114,11 @@ export class HtmlGenerator {
             padding: 20px;
             margin-bottom: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .table-container {
             overflow-x: auto;
+            margin: 0 -20px;
+            padding: 0 20px;
         }
         .position-header {
             display: flex;
@@ -120,9 +129,31 @@ export class HtmlGenerator {
             border-bottom: 2px solid #f0f0f0;
         }
         .position-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .pair-name {
             font-size: 1.5em;
             font-weight: 600;
             color: #333;
+        }
+        .protocol-badge, .fee-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .protocol-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .fee-badge {
+            background: #e9ecef;
+            color: #495057;
         }
         .position-id {
             color: #666;
@@ -261,7 +292,7 @@ export class HtmlGenerator {
 
   private groupPositionsByIds(allData: PositionData[]): Map<string, PositionData[]> {
     const groups = new Map<string, PositionData[]>();
-    
+
     for (const position of allData) {
       const id = position.positionId;
       if (!groups.has(id)) {
@@ -269,105 +300,114 @@ export class HtmlGenerator {
       }
       groups.get(id)!.push(position);
     }
-    
+
     // Sort each group by date (newest first)
-    groups.forEach((positions) => {
+    groups.forEach(positions => {
       positions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     });
-    
+
     return groups;
   }
 
   private buildPositionHistoryTable(positionId: string, positions: PositionData[]): string {
-    if (positions.length === 0) return '';
-    
+    if (positions.length === 0) return "";
+
     const latestPosition = positions[0];
-    if (!latestPosition) return '';
-    
-    const poolName = `${latestPosition.token0.symbol}/${latestPosition.token1.symbol}`;
-    const feePercent = (latestPosition.fee / 10000).toFixed(2);
-    
-    const priceRange = latestPosition.priceRange ? 
-      `$${latestPosition.priceRange.lower.toFixed(2)} - $${latestPosition.priceRange.upper.toFixed(2)}` : 
-      `${latestPosition.tickLower} - ${latestPosition.tickUpper}`;
-    
-    const rows = positions.map((position, index) => {
-      const previousPosition = index < positions.length - 1 ? positions[index + 1] || null : null;
-      return this.buildTableRow(position, previousPosition);
-    }).join('\n');
-    
+    if (!latestPosition) return "";
+
+    const poolName = `${latestPosition.token0.symbol} / ${latestPosition.token1.symbol}`;
+    const feePercent = (latestPosition.fee / 10000).toString();
+
+    const priceRange = latestPosition.priceRange
+      ? `$${latestPosition.priceRange.lower.toFixed(2)} - $${latestPosition.priceRange.upper.toFixed(2)}`
+      : `${latestPosition.tickLower} - ${latestPosition.tickUpper}`;
+
+    const rows = positions
+      .map((position, index) => {
+        const previousPosition = index < positions.length - 1 ? positions[index + 1] || null : null;
+        return this.buildTableRow(position, previousPosition);
+      })
+      .join("\n");
+
     return `
         <div class="position-card">
             <div class="position-header">
                 <div>
-                    <div class="position-title">${poolName} - ${feePercent}% Fee Tier</div>
+                    <div class="position-title">
+                        <span class="pair-name">${poolName}</span>
+                        <span class="protocol-badge">V3</span>
+                        <span class="fee-badge">${feePercent}%</span>
+                    </div>
                     <div class="position-id" style="font-weight: 600; font-size: 1.1em; color: #333;">Range: ${priceRange}</div>
                     <div class="position-id">Position #${positionId}</div>
                 </div>
             </div>
             
-            <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Total Value (USD)</th>
-                        <th>Total Fees (USD)</th>
-                        <th>24h Fees</th>
-                        <th>Current Price (USD)</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${rows}
-                </tbody>
-            </table>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Total Value (USD)</th>
+                            <th>Total Fees (USD)</th>
+                            <th>24h Fees</th>
+                            <th>Current Price (USD)</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
         </div>`;
   }
 
   private buildTableRow(position: PositionData, previousPosition: PositionData | null): string {
-    const isInRange = position.priceRange && 
-      position.priceRange.current >= position.priceRange.lower && 
+    const isInRange =
+      position.priceRange &&
+      position.priceRange.current >= position.priceRange.lower &&
       position.priceRange.current <= position.priceRange.upper;
-    
-    const statusBadge = isInRange ? 
-      '<span class="status-badge status-in-range">In Range</span>' : 
-      '<span class="status-badge status-out-range">Out of Range</span>';
-    
-    const currentPrice = position.priceRange ? 
-      `$${position.priceRange.current.toFixed(2)}` : 
-      'N/A';
-    
+
+    const statusBadge = isInRange
+      ? '<span class="status-badge status-in-range">In Range</span>'
+      : '<span class="status-badge status-out-range">Out of Range</span>';
+
+    const currentPrice = position.priceRange ? `$${position.priceRange.current.toFixed(2)}` : "N/A";
+
     const date = new Date(position.timestamp);
-    const dateStr = date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      timeZone: TIMEZONE.SOFIA
-    }).toUpperCase();
-    const timeStr = date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
+    const dateStr = date
+      .toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        timeZone: TIMEZONE.SOFIA
+      })
+      .toUpperCase();
+    const timeStr = date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
       hour12: false,
       timeZone: TIMEZONE.SOFIA
     });
     const fullDateStr = `${dateStr}, ${timeStr}`;
 
     // Calculate 24h fee difference
-    let feesDifference = '';
+    let feesDifference = "";
     if (previousPosition && previousPosition.uncollectedFees?.totalUSD && position.uncollectedFees?.totalUSD) {
       const diff = position.uncollectedFees.totalUSD - previousPosition.uncollectedFees.totalUSD;
-      const sign = diff >= 0 ? '+' : '';
-      const color = diff >= 0 ? '#48bb78' : '#f56565';
+      const sign = diff >= 0 ? "+" : "";
+      const color = diff >= 0 ? "#48bb78" : "#f56565";
       feesDifference = `<span style="color: ${color}; font-weight: 600;">${sign}$${diff.toFixed(2)}</span>`;
     } else {
-      feesDifference = '-';
+      feesDifference = "-";
     }
 
     return `
         <tr>
             <td>${fullDateStr}</td>
-            <td><strong>$${position.totalValueUSD?.toFixed(2) || '0.00'}</strong></td>
-            <td class="fees-total">$${position.uncollectedFees.totalUSD?.toFixed(2) || '0.00'}</td>
+            <td><strong>$${position.totalValueUSD?.toFixed(2) || "0.00"}</strong></td>
+            <td class="fees-total">$${position.uncollectedFees.totalUSD?.toFixed(2) || "0.00"}</td>
             <td>${feesDifference}</td>
             <td>${currentPrice}</td>
             <td>${statusBadge}</td>
