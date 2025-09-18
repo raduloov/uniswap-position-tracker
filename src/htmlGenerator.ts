@@ -2,6 +2,7 @@ import { PositionData } from "./types";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { SupabaseStorage } from "./supabaseStorage";
+import { TIMEZONE } from "./constants";
 
 export class HtmlGenerator {
   private htmlFilePath: string;
@@ -50,14 +51,20 @@ export class HtmlGenerator {
   }
 
   private buildHtml(allData: PositionData[]): string {
-    const currentDate = new Date().toLocaleDateString("en-US", {
+    const now = new Date();
+    const currentDate = now.toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
+      timeZone: TIMEZONE.SOFIA
+    });
+    const currentTime = now.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
-      timeZone: "Europe/Sofia"
+      hour12: false,
+      timeZone: TIMEZONE.SOFIA
     });
+    const formattedDateTime = `${currentDate} at ${currentTime}`;
 
     // Group positions by positionId
     const positionGroups = this.groupPositionsByIds(allData);
@@ -143,13 +150,13 @@ export class HtmlGenerator {
             letter-spacing: 0.3px;
             white-space: nowrap;
         }
-        th:nth-child(1) { width: 13%; } /* Date */
-        th:nth-child(2) { width: 15%; } /* Total Value */
-        th:nth-child(3) { width: 14%; } /* Total Fees */
+        th:nth-child(1) { width: 16%; } /* Date */
+        th:nth-child(2) { width: 14%; } /* Total Value */
+        th:nth-child(3) { width: 13%; } /* Total Fees */
         th:nth-child(4) { width: 10%; } /* 24h Fees */
-        th:nth-child(5) { width: 20%; } /* Position Range */
-        th:nth-child(6) { width: 15%; } /* Current Price */
-        th:nth-child(7) { width: 13%; } /* Status */
+        th:nth-child(5) { width: 18%; } /* Position Range */
+        th:nth-child(6) { width: 14%; } /* Current Price */
+        th:nth-child(7) { width: 15%; } /* Status */
         td {
             padding: 8px;
             border-bottom: 1px solid #f0f0f0;
@@ -157,13 +164,13 @@ export class HtmlGenerator {
             font-size: 0.85em;
             white-space: nowrap;
         }
-        td:nth-child(1) { width: 13%; } /* Date */
-        td:nth-child(2) { width: 15%; } /* Total Value */
-        td:nth-child(3) { width: 14%; } /* Total Fees */
+        td:nth-child(1) { width: 16%; } /* Date */
+        td:nth-child(2) { width: 14%; } /* Total Value */
+        td:nth-child(3) { width: 13%; } /* Total Fees */
         td:nth-child(4) { width: 10%; } /* 24h Fees */
-        td:nth-child(5) { width: 20%; } /* Position Range */
-        td:nth-child(6) { width: 15%; } /* Current Price */
-        td:nth-child(7) { width: 13%; } /* Status */
+        td:nth-child(5) { width: 18%; } /* Position Range */
+        td:nth-child(6) { width: 14%; } /* Current Price */
+        td:nth-child(7) { width: 15%; } /* Status */
         tr:last-child td {
             border-bottom: none;
         }
@@ -242,7 +249,7 @@ export class HtmlGenerator {
 <body>
     <div class="container">
         <h1>🦄 Uniswap V3 Position Report</h1>
-        <div class="timestamp">Updated on ${currentDate}</div>
+        <div class="timestamp">Updated on ${formattedDateTime}</div>
         
         ${positionTables}
         
@@ -337,8 +344,15 @@ export class HtmlGenerator {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
-      timeZone: 'Europe/Sofia'
+      timeZone: TIMEZONE.SOFIA
     }).toUpperCase();
+    const timeStr = date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: TIMEZONE.SOFIA
+    });
+    const fullDateStr = `${dateStr}, ${timeStr}`;
 
     // Calculate 24h fee difference
     let feesDifference = '';
@@ -353,7 +367,7 @@ export class HtmlGenerator {
 
     return `
         <tr>
-            <td>${dateStr}</td>
+            <td>${fullDateStr}</td>
             <td><strong>$${position.totalValueUSD?.toFixed(2) || '0.00'}</strong></td>
             <td class="fees-total">$${position.uncollectedFees.totalUSD?.toFixed(2) || '0.00'}</td>
             <td>${feesDifference}</td>
