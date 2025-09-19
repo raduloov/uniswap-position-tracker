@@ -36,8 +36,6 @@ export class DataStorage {
       const updatedData = [...existingData, ...positions];
 
       fs.writeFileSync(this.filePath, JSON.stringify(updatedData, null, 2), "utf-8");
-
-      console.log(`Data saved to ${this.filePath}`);
     } catch (error) {
       console.error("Error saving data:", error);
       throw error;

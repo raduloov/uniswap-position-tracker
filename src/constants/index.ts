@@ -1,3 +1,6 @@
+export const DEFAULT_REPORT_PATH = "./docs/index.html";
+export const DEFAULT_DATA_PATH = "./data/positions.json";
+
 export const GRAPH_CONSTANTS = {
   ENDPOINTS: {
     DECENTRALIZED_TEMPLATE:

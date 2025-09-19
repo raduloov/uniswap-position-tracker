@@ -5,7 +5,7 @@ import { UNISWAP_CONSTANTS, STABLECOIN_SYMBOLS } from "../constants";
 import { getGraphEndpoint } from "../utils";
 import { buildPositionByIdQuery, buildPositionsByOwnerQuery } from "../schemas";
 
-export class UniswapClient {
+class UniswapClient {
   private subgraphUrl: string;
 
   constructor(apiKey: string) {
@@ -298,3 +298,5 @@ export class UniswapClient {
     return feeGrowthGlobalX128 - feeGrowthBelowX128 - feeGrowthAboveX128;
   }
 }
+
+export default UniswapClient;

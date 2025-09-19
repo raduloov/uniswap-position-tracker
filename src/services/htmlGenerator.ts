@@ -9,13 +9,13 @@ export class HtmlGenerator {
   private dataFilePath: string;
   private supabaseStorage: SupabaseStorage;
 
-  constructor(htmlFilePath: string = "./docs/index.html", dataFilePath: string = "./data/positions.json") {
+  constructor(htmlFilePath: string, dataFilePath: string) {
     this.htmlFilePath = htmlFilePath;
     this.dataFilePath = dataFilePath;
     this.supabaseStorage = new SupabaseStorage();
   }
 
-  async generatePositionReport(_positions: PositionData[]): Promise<void> {
+  async generatePositionReport(): Promise<void> {
     // Load all historical data
     const allData = await this.loadAllPositionData();
     const html = this.buildHtml(allData);
@@ -48,6 +48,7 @@ export class HtmlGenerator {
           .catch(() => false)
       ) {
         const data = await fs.readFile(this.dataFilePath, "utf-8");
+        console.log(`📊 Loaded ${JSON.parse(data).length} entries from ${this.dataFilePath}`);
         return JSON.parse(data) as PositionData[];
       }
       return [];
