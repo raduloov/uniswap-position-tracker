@@ -101,6 +101,50 @@ class UniswapPositionTracker {
     }
   }
 
+  async generateReport(): Promise<void> {
+    try {
+      console.log("\n" + "=".repeat(50));
+      console.log("Generating HTML report from existing data...");
+      console.log("=".repeat(50) + "\n");
+
+      let hasData = false;
+
+      // Check if Supabase has data
+      if (this.supabaseStorage.isEnabled()) {
+        console.log("Checking Supabase for position data...");
+        const supabaseData = await this.supabaseStorage.loadAllPositions();
+
+        if (supabaseData && supabaseData.length > 0) {
+          hasData = true;
+          console.log(`Found ${supabaseData.length} snapshots in Supabase`);
+        }
+      }
+
+      // Check local storage if no Supabase or no data
+      if (!hasData) {
+        console.log("Checking local file for position data...");
+        const localData = await this.storage.loadData();
+
+        if (!localData || localData.length === 0) {
+          console.log("No existing position data found");
+          return;
+        }
+
+        hasData = true;
+        console.log(`Found ${localData.length} positions in local file`);
+      }
+
+      // Generate HTML report - it will load data internally
+      await this.htmlGenerator.generatePositionReport([]);
+
+      console.log("\n" + "=".repeat(50));
+      console.log("HTML report generated successfully");
+      console.log("=".repeat(50));
+    } catch (error) {
+      console.error("Error generating report:", error);
+    }
+  }
+
   async start(runOnce: boolean = false): Promise<void> {
     console.log("🚀 Uniswap Position Tracker Started");
 
@@ -135,8 +179,14 @@ async function main() {
   try {
     const tracker = new UniswapPositionTracker();
 
-    // Check for --once flag
+    // Check for flags
     const runOnce = process.argv.includes("--once");
+    const reportOnly = process.argv.includes("--report");
+
+    if (reportOnly) {
+      await tracker.generateReport();
+      return;
+    }
 
     await tracker.start(runOnce);
   } catch (error) {

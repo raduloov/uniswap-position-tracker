@@ -52,25 +52,61 @@ export class SupabaseStorage {
     }
   }
 
-  async loadRecentPositions(days: number = 30): Promise<PositionData[]> {
+  // Not used currently, but can be useful for future features
+  // async loadRecentPositions(days: number = 30): Promise<PositionData[]> {
+  //   if (!this.enabled || !this.supabase) return [];
+
+  //   try {
+  //     const since = new Date();
+  //     since.setDate(since.getDate() - days);
+
+  //     const { data, error } = await this.supabase
+  //       .from("position_snapshots")
+  //       .select("data")
+  //       .gte("timestamp", since.toISOString())
+  //       .order("timestamp", { ascending: false });
+
+  //     if (error) {
+  //       console.error("Error loading from Supabase:", error);
+  //       return [];
+  //     }
+
+  //     return (data || []).map(row => row.data as PositionData);
+  //   } catch (error) {
+  //     console.error("Supabase load error:", error);
+  //     return [];
+  //   }
+  // }
+
+  async loadAllPositions(): Promise<PositionData[][]> {
     if (!this.enabled || !this.supabase) return [];
 
     try {
-      const since = new Date();
-      since.setDate(since.getDate() - days);
-
       const { data, error } = await this.supabase
         .from("position_snapshots")
-        .select("data")
-        .gte("timestamp", since.toISOString())
-        .order("timestamp", { ascending: false });
+        .select("data, timestamp")
+        .order("timestamp", { ascending: true });
 
       if (error) {
         console.error("Error loading from Supabase:", error);
         return [];
       }
 
-      return (data || []).map(row => row.data as PositionData);
+      // Group positions by timestamp
+      const groupedPositions = new Map<string, PositionData[]>();
+
+      for (const row of data || []) {
+        const position = row.data as PositionData;
+        const timestamp = position.timestamp;
+
+        if (!groupedPositions.has(timestamp)) {
+          groupedPositions.set(timestamp, []);
+        }
+        groupedPositions.get(timestamp)!.push(position);
+      }
+
+      // Convert to array of position arrays
+      return Array.from(groupedPositions.values());
     } catch (error) {
       console.error("Supabase load error:", error);
       return [];

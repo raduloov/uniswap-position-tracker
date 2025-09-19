@@ -31,8 +31,10 @@ export class HtmlGenerator {
     try {
       // Try to load from Supabase first
       if (this.supabaseStorage.isEnabled()) {
-        const supabaseData = await this.supabaseStorage.loadRecentPositions(30);
-        if (supabaseData.length > 0) {
+        const supabaseDataGroups = await this.supabaseStorage.loadAllPositions();
+        if (supabaseDataGroups.length > 0) {
+          // Flatten the grouped data into a single array
+          const supabaseData = supabaseDataGroups.flat();
           console.log(`📊 Loaded ${supabaseData.length} entries from Supabase`);
           return supabaseData;
         }
