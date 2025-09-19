@@ -2,7 +2,7 @@ name: Track Positions and Deploy
 
 on:
   schedule:
-    - cron: "20 7 * * *" # Daily at 07:20 UTC (10:20 Sofia time in summer)
+    - cron: "30 7 * * *" # Daily at 07:30 UTC (10:30 Sofia time in summer)
   workflow_dispatch:
 
 permissions:
