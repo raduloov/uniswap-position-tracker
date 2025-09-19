@@ -1,5 +1,7 @@
 import { GRAPH_CONSTANTS, UNISWAP_CONSTANTS } from "../constants";
 
+export const isGithubActionsEnv = !!process.env["GITHUB_ACTIONS"];
+
 export const getGraphEndpoint = (apiKey: string) =>
   GRAPH_CONSTANTS.ENDPOINTS.DECENTRALIZED_TEMPLATE.replace(GRAPH_CONSTANTS.ENDPOINTS.API_KEY_PLACEHOLDER, apiKey);
 

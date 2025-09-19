@@ -1,4 +1,5 @@
 import dotenv from "dotenv";
+import { isGithubActionsEnv } from "../utils";
 
 dotenv.config();
 
@@ -10,9 +11,9 @@ export const config = {
   graphApiKey: process.env["GRAPH_API_KEY"] || ""
 };
 
-export function validateConfig(reportOnly: boolean): void {
-  // Skip validation for report-only mode since we don't need wallet/position ID
-  if (!reportOnly) return;
+export function validateConfig(): void {
+  // Skip validation in GitHub Actions since it only needs Supabase credentials
+  if (isGithubActionsEnv) return;
 
   if (!config.walletAddress && !config.positionId) {
     throw new Error("Either WALLET_ADDRESS or POSITION_ID must be provided in .env file");

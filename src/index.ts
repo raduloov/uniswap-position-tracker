@@ -13,8 +13,8 @@ class UniswapPositionTracker {
   private scheduler: Scheduler;
   private htmlGenerator: HtmlGenerator;
 
-  constructor(reportOnly: boolean = false) {
-    validateConfig(reportOnly);
+  constructor() {
+    validateConfig();
 
     this.client = new UniswapClient(config.graphApiKey);
     this.storage = new DataStorage(config.dataFilePath);
@@ -178,11 +178,11 @@ class UniswapPositionTracker {
 
 async function main() {
   try {
+    const tracker = new UniswapPositionTracker();
+
     // Check for flags
     const runOnce = process.argv.includes("--once");
     const reportOnly = process.argv.includes("--report");
-
-    const tracker = new UniswapPositionTracker(reportOnly);
 
     if (reportOnly) {
       await tracker.generateReport();
