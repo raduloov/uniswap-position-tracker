@@ -1,6 +1,6 @@
 import { GRAPH_CONSTANTS } from "../constants";
 
-export const positionFields = `
+const positionFields = `
     id
     owner
     liquidity

@@ -1,9 +1,11 @@
 # Uniswap Position Tracker - Project Context
 
 ## Project Overview
+
 This is a TypeScript application that automatically tracks Uniswap V3 liquidity provider positions daily and logs the data to a JSON file. It uses The Graph Protocol to fetch on-chain data without requiring direct RPC access.
 
 ## Key Features
+
 - Fetches all active Uniswap V3 positions for a wallet address
 - Calculates accurate token amounts using Uniswap V3 math
 - Determines USD values using stablecoin references (USDT, USDC, etc.)
@@ -17,21 +19,31 @@ This is a TypeScript application that automatically tracks Uniswap V3 liquidity 
 ## Technical Architecture
 
 ### Data Source
-- Uses The Graph Protocol's Uniswap V3 subgraph
+
+- Uses The Graph Protocol's Uniswap V3 subgraph via REST API
 - Endpoint: `https://gateway.thegraph.com/api/[api-key]/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV`
+- Sends GraphQL-formatted queries via axios POST requests (not using a GraphQL client)
 - Can work without API key using development endpoint (rate limited)
 - Recommended to get free API key from https://thegraph.com/studio/apikeys/
 
 ### Core Components
 
 1. **src/index.ts**
+
    - Main application entry point
-   - Class-based architecture with `UniswapPositionTracker` class
-   - Handles scheduling and orchestration
-   - Supports `--once` flag for single run
+   - Imports and instantiates `UniswapPositionTracker` class from client module
+   - Handles command-line flags (`--once`, `--report`)
+   - Proper error handling with exit code 1 for GitHub Actions
+
+2. **src/client/uniswapPositionTracker.ts**
+
+   - Main class orchestrating all functionality
+   - Handles scheduling and position checking
+   - Supports both Supabase and local file storage
    - Enhanced console output with formatting and timezone display
 
-2. **src/uniswapClient.ts**
+3. **src/client/uniswapClient.ts**
+
    - Handles all Graph API interactions
    - Implements Uniswap V3 math for position calculations
    - Uses modularized utilities and schemas
@@ -41,18 +53,28 @@ This is a TypeScript application that automatically tracks Uniswap V3 liquidity 
      - `getAmountsForLiquidity()`: Calculates token amounts from liquidity
      - `calculateFeeGrowthInside()`: Calculates uncollected fees
 
-3. **src/dataStorage.ts**
+4. **src/storage/dataStorage.ts**
+
    - Manages JSON file persistence
    - Appends new data to maintain history
    - Type-safe with TypeScript interfaces
 
-4. **src/scheduler.ts**
+5. **src/storage/supabaseStorage.ts**
+
+   - Handles Supabase database operations
+   - Stores position snapshots in cloud database
+   - Enables GitHub Actions to generate reports without local files
+   - Optional - falls back to local storage if not configured
+
+6. **src/services/scheduler.ts**
+
    - Handles cron-based scheduling
    - Runs task at specified time daily
    - Timezone-aware (uses Sofia timezone)
 
-5. **src/htmlGenerator.ts**
+7. **src/services/htmlGenerator.ts**
    - Generates HTML reports from position data
+   - Supports both Supabase and local file data sources
    - Creates historical tracking tables for each position
    - Shows daily snapshots with key metrics:
      - Total Value (USD)
@@ -62,53 +84,64 @@ This is a TypeScript application that automatically tracks Uniswap V3 liquidity 
      - In/Out of Range status
    - Responsive design with modern UI
    - Groups positions by ID for multi-position tracking
+   - Deployed to GitHub Pages via Actions
 
 ### Modular Architecture
 
-6. **src/config/**
+8. **src/config/**
+
    - `index.ts`: Environment variable loading and validation
    - `schema.ts`: TypeScript interfaces for configuration
    - Validates required parameters (WALLET_ADDRESS or POSITION_ID)
+   - Skips validation in GitHub Actions environment (detects via GITHUB_ACTIONS env var)
 
-7. **src/constants/**
+9. **src/constants/**
+
    - `index.ts`: Centralized constants and configuration
    - Graph API configuration (endpoints, limits)
    - Uniswap V3 math constants (Q32, Q96, Q128)
    - Stablecoin symbols for USD value determination
    - Timezone configuration
 
-8. **src/types/**
-   - `index.ts`: TypeScript interfaces
-   - `GraphQLPosition`: Graph API response structure
-   - `PositionData`: Internal position data model
-   - Clear separation between API and internal types
+10. **src/types/**
 
-9. **src/schemas/**
-   - `index.ts`: GraphQL query builders
-   - `buildPositionByIdQuery()`: Query single position
-   - `buildPositionsByOwnerQuery()`: Query wallet positions
-   - Reusable field definitions for maintainability
+    - `index.ts`: TypeScript interfaces
+    - `GraphQLPosition`: Graph API response structure
+    - `PositionData`: Internal position data model
+    - Clear separation between API and internal types
 
-10. **src/utils/**
-   - `index.ts`: Utility functions
-   - `getGraphEndpoint()`: Constructs Graph API endpoint
-   - `getSqrtPriceX96FromTick()`: Uniswap V3 tick-to-price conversion
-   - Mathematical helper functions
+11. **src/schemas/**
+
+    - `index.ts`: Query string builders for The Graph API
+    - `buildPositionByIdQuery()`: Builds query for single position
+    - `buildPositionsByOwnerQuery()`: Builds query for wallet positions
+    - Reusable field definitions for maintainability
+    - Note: Builds GraphQL-formatted query strings but sends via REST API (axios POST)
+
+12. **src/utils/**
+    - `index.ts`: Utility functions
+    - `getGraphEndpoint()`: Constructs Graph API endpoint
+    - `getSqrtPriceX96FromTick()`: Uniswap V3 tick-to-price conversion
+    - `isGithubActionsEnv`: Detects GitHub Actions environment
+    - Mathematical helper functions
 
 ## Important Implementation Details
 
 ### Price Calculations
+
 - The Graph's `token0Price` and `token1Price` fields are confusingly named:
-  - `token0Price` actually represents "token1 per token0" 
+  - `token0Price` actually represents "token1 per token0"
   - `token1Price` actually represents "token0 per token1"
 - For WETH/USDT pools, we invert prices to show WETH price in USDT
 
 ### Fee Calculations
+
 - Uses Uniswap V3's fee growth tracking mechanism
 - Requires `feeGrowthGlobal0X128`, `feeGrowthOutside0X128`, etc. from Graph
 - Formula: `uncollectedFees = liquidity * (feeGrowthInside - feeGrowthInside0LastX128) / 2^128`
 
 ### Price Range Display
+
 - Converts ticks to human-readable prices
 - For WETH/USDT: shows range in USDT (e.g., $4,400 - $4,800)
 - Uses relative calculation from current price for accuracy
@@ -116,6 +149,7 @@ This is a TypeScript application that automatically tracks Uniswap V3 liquidity 
 - Range status indicators (✅/❌) for in-range visualization
 
 ### USD Value Determination
+
 - Identifies stablecoins (USDT, USDC, DAI, etc.) and uses them as $1 reference
 - For WETH/USDT pool:
   - USDT = $1 (stablecoin)
@@ -124,7 +158,8 @@ This is a TypeScript application that automatically tracks Uniswap V3 liquidity 
 ## Configuration (.env)
 
 ```env
-# Required (unless POSITION_ID is provided)
+# Required for local runs (unless POSITION_ID is provided)
+# Not required in GitHub Actions environment
 WALLET_ADDRESS=0x...
 
 # Optional but recommended for reliability
@@ -133,32 +168,46 @@ GRAPH_API_KEY=your-api-key-here
 # Optional: Track specific position instead of all wallet positions
 POSITION_ID=12345
 
+# Optional: Supabase configuration for cloud storage
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key-here
+
 # Daily run time (24-hour format)
 SCHEDULE_TIME=09:00
 
-# Output file location
+# Output file location (used when Supabase not configured)
 DATA_FILE_PATH=./data/positions.json
 ```
 
 ## Usage Commands
 
 ```bash
-# Run continuously with daily schedule
-npm run dev
-
-# Run once immediately
-npm run dev:once
-
 # Build TypeScript
 npm run build
 
-# Run production build
-npm start
+# Track positions continuously with daily schedule
+npm run track
+
+# Track positions once immediately
+npm run track:once
+
+# Track positions locally (ignores Supabase)
+npm run track-local
+npm run track-local:once
+
+# Generate HTML report from existing data
+npm run report
+npm run report-local  # Uses local file instead of Supabase
+
+# Production commands (uses compiled JS)
+npm run prod:track:once
+npm run prod:report
 ```
 
 ## Data Structure
 
 The app saves position data in JSON format with:
+
 - Token amounts and USD values
 - Liquidity and fee tier
 - Price range (ticks and human-readable)
@@ -167,6 +216,7 @@ The app saves position data in JSON format with:
 - Timestamp and date for historical tracking
 
 ### HTML Report Features
+
 - **Historical Position Table**: Each position tracked over time
 - **Date Format**: Day of week + date (e.g., THU, SEP 18)
 - **24h Fees Column**: Shows fee changes between snapshots (+$X.XX or -$X.XX)
@@ -179,18 +229,23 @@ The app saves position data in JSON format with:
 ## Known Issues and Solutions
 
 ### Issue: Graph API deprecated old endpoints
+
 **Solution**: Updated to use new Graph Network endpoints with optional API key
 
 ### Issue: Price calculations were showing astronomical numbers
+
 **Solution**: Fixed decimal adjustments and used relative price calculations from current price
 
 ### Issue: Uncollected fees were incorrect
+
 **Solution**: Implemented proper Uniswap V3 fee growth calculation using feeGrowthInside
 
 ### Issue: USD prices were wrong for WETH
+
 **Solution**: Recognized that Graph's token prices are exchange rates, used stablecoin as reference
 
 ## Future Enhancements
+
 - Add support for multiple chains (Polygon, Arbitrum, etc.)
 - Email/Discord notifications for significant changes
 - Web dashboard for visualization
@@ -198,54 +253,125 @@ The app saves position data in JSON format with:
 - Automatic fee collection when threshold reached
 - Integration with tax reporting tools
 
+## GitHub Actions Workflows
+
+The project includes two GitHub Actions workflows for automation:
+
+### 1. Track Positions and Deploy (`track-positions-and-deploy.yml`)
+
+**Triggers:**
+- **Schedule**: Daily at 22:30 UTC (00:30 Sofia time) via cron
+- **Manual**: Can be triggered manually via `workflow_dispatch`
+
+**What it does:**
+1. Checks out the repository
+2. Sets up Node.js 20 with npm caching
+3. Caches TypeScript build output for faster runs
+4. Installs dependencies
+5. Builds TypeScript (if not cached)
+6. Runs position tracker once (`npm run prod:track:once`)
+7. Generates HTML report with latest data
+8. Deploys to GitHub Pages
+
+**Required Secrets:**
+- `WALLET_ADDRESS` or `POSITION_ID` - Track specific wallet/position
+- `GRAPH_API_KEY` - The Graph API key (optional but recommended)
+- `SUPABASE_URL` - Supabase project URL
+- `SUPABASE_ANON_KEY` - Supabase anonymous key
+
+### 2. Generate Report from Supabase (`generate-report.yml`)
+
+**Triggers:**
+- **Push**: Automatically on push to `main` branch
+- **Manual**: Can be triggered manually via `workflow_dispatch`
+
+**What it does:**
+1. Checks out the repository
+2. Sets up Node.js 20 with npm caching
+3. Installs dependencies
+4. Builds TypeScript
+5. Generates HTML report from existing Supabase data (`npm run prod:report`)
+6. Deploys to GitHub Pages
+
+**Required Secrets:**
+- `SUPABASE_URL` - Supabase project URL
+- `SUPABASE_ANON_KEY` - Supabase anonymous key
+- Note: Does NOT require `WALLET_ADDRESS` since it only reads existing data
+
+### Workflow Features
+
+- **Concurrency Control**: Uses concurrency groups to prevent overlapping deployments
+- **GitHub Pages Deployment**: Both workflows deploy to GitHub Pages at the end
+- **Build Caching**: The tracking workflow caches TypeScript builds for efficiency
+- **Environment Detection**: Code automatically detects `GITHUB_ACTIONS` environment variable
+- **Error Handling**: Process exits with code 1 on errors for proper CI/CD failure detection
+
 ## Testing
+
 To test the application:
-1. Set up `.env` with valid wallet address
-2. Run `npm run dev:once` for immediate test
-3. Check `data/positions.json` for output
-4. Check `data/positions.html` for HTML report
+
+1. Set up `.env` with valid wallet address (for local runs)
+2. Run `npm run track:once` for immediate test
+3. Check `data/positions.json` for output (if not using Supabase)
+4. Check `docs/index.html` for HTML report
 5. Verify calculations match Uniswap interface
 
 ## Dependencies
+
 - **axios**: HTTP client for Graph API
 - **node-cron**: Scheduling daily runs
 - **dotenv**: Environment variable management
 - **typescript/tsx**: TypeScript support
+- **@supabase/supabase-js**: Supabase client for cloud storage
 
 ## Project Structure
+
 ```
 uniswap-position-tracker/
 ├── src/
-│   ├── index.ts           # Main entry point (class-based)
-│   ├── uniswapClient.ts   # Graph API & calculations
-│   ├── dataStorage.ts     # File persistence
-│   ├── scheduler.ts       # Cron scheduling (timezone-aware)
-│   ├── htmlGenerator.ts   # HTML report generation
+│   ├── index.ts                      # Main entry point
+│   ├── client/
+│   │   ├── uniswapPositionTracker.ts # Main orchestration class
+│   │   └── uniswapClient.ts         # Graph API & calculations
+│   ├── storage/
+│   │   ├── dataStorage.ts           # Local file persistence
+│   │   └── supabaseStorage.ts       # Supabase cloud storage
+│   ├── services/
+│   │   ├── scheduler.ts             # Cron scheduling (timezone-aware)
+│   │   └── htmlGenerator.ts         # HTML report generation
 │   ├── config/
-│   │   ├── index.ts       # Config loading & validation
-│   │   └── schema.ts      # Config TypeScript interfaces
+│   │   ├── index.ts                 # Config loading & validation
+│   │   └── schema.ts                # Config TypeScript interfaces
 │   ├── constants/
-│   │   └── index.ts       # Centralized constants
+│   │   └── index.ts                 # Centralized constants
 │   ├── schemas/
-│   │   └── index.ts       # GraphQL query builders
+│   │   └── index.ts                 # GraphQL query builders
 │   ├── types/
-│   │   └── index.ts       # TypeScript interfaces
-│   ├── utils/
-│   │   └── index.ts       # Utility functions
-│   └── services/          # Service modules (future)
-├── data/                  # Output directory
-│   ├── positions.json     # Historical position data
-│   └── positions.html     # HTML report with tables
-├── .env                   # Configuration
-├── tsconfig.json          # TypeScript config
-└── package.json           # Dependencies
+│   │   └── index.ts                 # TypeScript interfaces
+│   └── utils/
+│       └── index.ts                 # Utility functions
+├── docs/
+│   └── index.html                   # Generated HTML report (GitHub Pages)
+├── data/                            # Local output directory
+│   └── positions.json               # Historical position data
+├── .github/
+│   └── workflows/
+│       ├── generate-report.yml      # Report generation workflow
+│       └── track-positions-and-deploy.yml  # Daily tracking workflow
+├── .env                             # Configuration
+├── tsconfig.json                    # TypeScript config
+└── package.json                     # Dependencies
 ```
 
 ## Maintenance Notes
+
 - The Graph endpoints may change; check https://thegraph.com for updates
 - Uniswap V3 math is complex; be careful when modifying calculations
 - Always test with small positions first
 - Keep historical data backed up
 - Math constants are centralized in `src/constants/index.ts`
-- GraphQL queries can be modified in `src/schemas/index.ts`
-- Configuration validation ensures either WALLET_ADDRESS or POSITION_ID is provided
+- Query strings for The Graph API can be modified in `src/schemas/index.ts`
+- Configuration validation:
+  - Local runs require either WALLET_ADDRESS or POSITION_ID
+  - GitHub Actions environment automatically skips validation
+  - Process exits with code 1 on errors for proper CI/CD failure detection

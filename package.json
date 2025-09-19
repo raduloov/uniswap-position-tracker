@@ -11,7 +11,7 @@
     "track-local": "NODE_NO_WARNINGS=1 SUPABASE_URL= SUPABASE_ANON_KEY= tsx src/index.ts",
     "track-local:once": "NODE_NO_WARNINGS=1 SUPABASE_URL= SUPABASE_ANON_KEY= tsx src/index.ts --once",
     "report": "NODE_NO_WARNINGS=1 tsx src/index.ts --report",
-    "report:local": "NODE_NO_WARNINGS=1 SUPABASE_URL= SUPABASE_ANON_KEY= tsx src/index.ts --report",
+    "report-local": "NODE_NO_WARNINGS=1 SUPABASE_URL= SUPABASE_ANON_KEY= tsx src/index.ts --report",
     "prod:track:once": "NODE_NO_WARNINGS=1 node dist/index.js --once",
     "prod:report": "NODE_NO_WARNINGS=1 node dist/index.js --report",
     "test": "echo \"Error: no test specified\" && exit 1"

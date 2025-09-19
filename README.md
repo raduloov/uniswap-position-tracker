@@ -49,15 +49,21 @@ SUPABASE_ANON_KEY=your-anon-key
 ### Usage
 
 ```bash
-# Run once immediately
-npm run dev:once
-
-# Run with daily schedule
-npm run dev
-
-# Build and run production
+# Build TypeScript
 npm run build
-npm start
+
+# Track positions once immediately
+npm run track:once
+
+# Track positions with daily schedule
+npm run track
+
+# Generate HTML report from existing data
+npm run report
+
+# Production commands (uses compiled JS)
+npm run prod:track:once
+npm run prod:report
 ```
 
 ## HTML Reports
@@ -71,30 +77,62 @@ The tracker generates an HTML report at `docs/index.html` showing:
 
 ## GitHub Actions Deployment
 
-The repository includes a workflow that:
-1. Runs position tracking every hour (GitHub's actual frequency varies)
-2. Generates HTML report
-3. Deploys to GitHub Pages
+The repository includes two automated workflows:
 
-Enable GitHub Pages in repository settings (Source: GitHub Actions).
+### 1. Track Positions and Deploy
+- **Schedule**: Daily at 22:30 UTC (00:30 Sofia time)
+- **Manual Trigger**: Available via workflow_dispatch
+- **Actions**: Tracks positions, saves to Supabase, generates report, deploys to GitHub Pages
+
+### 2. Generate Report from Supabase
+- **Triggers**: On push to main branch or manual dispatch
+- **Actions**: Generates HTML report from Supabase data, deploys to GitHub Pages
+- **Note**: Doesn't require WALLET_ADDRESS (only reads existing data)
+
+### Setup
+1. Add required secrets to GitHub repository:
+   - `WALLET_ADDRESS` or `POSITION_ID`
+   - `GRAPH_API_KEY` (optional but recommended)
+   - `SUPABASE_URL` and `SUPABASE_ANON_KEY`
+2. Enable GitHub Pages in repository settings (Source: GitHub Actions)
+3. Access your live report at: `https://[username].github.io/uniswap-position-tracker/`
 
 ## Project Structure
 
 ```
 ├── src/
-│   ├── index.ts                 # Main entry point
+│   ├── index.ts                      # Main entry point
 │   ├── client/
-│   │   └── uniswapClient.ts    # Graph API client
-│   ├── services/
-│   │   ├── scheduler.ts        # Cron scheduler
-│   │   └── htmlGenerator.ts    # HTML report generator
+│   │   ├── uniswapPositionTracker.ts # Main orchestration class
+│   │   └── uniswapClient.ts         # Graph API & calculations
 │   ├── storage/
-│   │   ├── dataStorage.ts      # Local file storage
-│   │   └── supabaseStorage.ts  # Cloud storage
-│   └── config/, types/, utils/ # Supporting modules
-├── data/                        # Position data (git-ignored)
-├── docs/                        # HTML reports
-└── .github/workflows/           # GitHub Actions
+│   │   ├── dataStorage.ts           # Local file persistence
+│   │   └── supabaseStorage.ts       # Supabase cloud storage
+│   ├── services/
+│   │   ├── scheduler.ts             # Cron scheduling (timezone-aware)
+│   │   └── htmlGenerator.ts         # HTML report generation
+│   ├── config/
+│   │   ├── index.ts                 # Config loading & validation
+│   │   └── schema.ts                # Config TypeScript interfaces
+│   ├── constants/
+│   │   └── index.ts                 # Centralized constants
+│   ├── schemas/
+│   │   └── index.ts                 # Query builders for The Graph API
+│   ├── types/
+│   │   └── index.ts                 # TypeScript interfaces
+│   └── utils/
+│       └── index.ts                 # Utility functions
+├── docs/
+│   └── index.html                   # Generated HTML report (GitHub Pages)
+├── data/                            # Local output directory (git-ignored)
+│   └── positions.json               # Historical position data
+├── .github/
+│   └── workflows/
+│       ├── generate-report.yml      # Report generation workflow
+│       └── track-positions-and-deploy.yml  # Daily tracking workflow
+├── .env                             # Configuration (create from .env.example)
+├── tsconfig.json                    # TypeScript config
+└── package.json                     # Dependencies
 ```
 
 ## License
