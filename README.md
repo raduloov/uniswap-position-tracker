@@ -15,6 +15,7 @@ Automated tracking system for Uniswap V3 liquidity positions with historical dat
 ## Quick Start
 
 ### Prerequisites
+
 - Node.js 20+
 - Uniswap V3 position ID or wallet address
 - (Optional) Graph API key from [The Graph](https://thegraph.com/studio/apikeys/)
@@ -52,16 +53,26 @@ SUPABASE_ANON_KEY=your-anon-key
 # Build TypeScript
 npm run build
 
+# Track positions with daily schedule
+npm run track
+
+# Track positions with daily schedule using DATA_FILE_PATH for DB
+npm run track-local
+
 # Track positions once immediately
 npm run track:once
 
-# Track positions with daily schedule
-npm run track
+# # Track positions once immediately using DATA_FILE_PATH for DB
+npm run track-local:once
 
 # Generate HTML report from existing data
 npm run report
 
+# Generate HTML report from existing data using DATA_FILE_PATH for DB
+npm run report-local
+
 # Production commands (uses compiled JS)
+npm run prod:track
 npm run prod:track:once
 npm run prod:report
 ```
@@ -69,6 +80,7 @@ npm run prod:report
 ## HTML Reports
 
 The tracker generates an HTML report at `docs/index.html` showing:
+
 - Historical position values
 - Fee accumulation over time
 - Price changes with percentages
@@ -80,16 +92,19 @@ The tracker generates an HTML report at `docs/index.html` showing:
 The repository includes two automated workflows:
 
 ### 1. Track Positions and Deploy
+
 - **Schedule**: Daily at 22:30 UTC (00:30 Sofia time)
 - **Manual Trigger**: Available via workflow_dispatch
 - **Actions**: Tracks positions, saves to Supabase, generates report, deploys to GitHub Pages
 
 ### 2. Generate Report from Supabase
+
 - **Triggers**: On push to main branch or manual dispatch
 - **Actions**: Generates HTML report from Supabase data, deploys to GitHub Pages
 - **Note**: Doesn't require WALLET_ADDRESS (only reads existing data)
 
 ### Setup
+
 1. Add required secrets to GitHub repository:
    - `WALLET_ADDRESS` or `POSITION_ID`
    - `GRAPH_API_KEY` (optional but recommended)
