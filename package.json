@@ -8,7 +8,11 @@
     "start": "NODE_NO_WARNINGS=1 node dist/index.js",
     "dev": "NODE_NO_WARNINGS=1 tsx src/index.ts",
     "dev:once": "NODE_NO_WARNINGS=1 tsx src/index.ts --once",
+    "dev:local": "NODE_NO_WARNINGS=1 SUPABASE_URL= SUPABASE_ANON_KEY= tsx src/index.ts",
+    "dev:local:once": "NODE_NO_WARNINGS=1 SUPABASE_URL= SUPABASE_ANON_KEY= tsx src/index.ts --once",
     "start:once": "NODE_NO_WARNINGS=1 node dist/index.js --once",
+    "start:local": "NODE_NO_WARNINGS=1 SUPABASE_URL= SUPABASE_ANON_KEY= node dist/index.js",
+    "start:local:once": "NODE_NO_WARNINGS=1 SUPABASE_URL= SUPABASE_ANON_KEY= node dist/index.js --once",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
