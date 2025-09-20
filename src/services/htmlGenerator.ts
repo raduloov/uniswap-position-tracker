@@ -3,6 +3,19 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { SupabaseStorage } from "../storage/supabaseStorage";
 import { TIMEZONE } from "../constants";
+import {
+  calculateFeeDifference,
+  calculateTotalValueDifference,
+  calculatePriceDifference,
+  formatFeeDifference,
+  formatTotalValueWithChange,
+  formatPriceWithChange,
+  isPositionInRange,
+  formatStatusBadge,
+  calculatePositionAge,
+  formatTableDate,
+  calculateAverageDailyFees
+} from "../utils/htmlGenerator";
 
 export class HtmlGenerator {
   private htmlFilePath: string;
@@ -181,6 +194,49 @@ export class HtmlGenerator {
             color: #666;
             font-size: 0.9em;
         }
+        .fees-indicators {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .average-fees-indicator, .total-fees-indicator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px 20px;
+            border-radius: 8px;
+        }
+        .average-fees-indicator {
+            border: 2px solid #48bb78;
+            background-color: rgba(72, 187, 120, 0.1);
+        }
+        .total-fees-indicator {
+            border: 2px solid #667eea;
+            background-color: rgba(102, 126, 234, 0.1);
+        }
+        .average-fees-label, .total-fees-label {
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .average-fees-label {
+            color: #48bb78;
+        }
+        .total-fees-label {
+            color: #667eea;
+        }
+        .average-fees-value {
+            color: #48bb78;
+            font-size: 1.5em;
+            font-weight: 700;
+        }
+        .total-fees-value {
+            color: #667eea;
+            font-size: 1.5em;
+            font-weight: 700;
+        }
         .total-value {
             font-size: 1.8em;
             font-weight: bold;
@@ -210,12 +266,11 @@ export class HtmlGenerator {
         th:last-child {
             border-top-right-radius: 6px;
         }
-        th:nth-child(1) { width: 20%; } /* Date */
-        th:nth-child(2) { width: 14%; } /* 24h Fees */
-        th:nth-child(3) { width: 18%; } /* Total Fees */
-        th:nth-child(4) { width: 18%; } /* Total Value */
-        th:nth-child(5) { width: 15%; } /* Current Price */
-        th:nth-child(6) { width: 15%; } /* Status */
+        th:nth-child(1) { width: 22%; } /* Date */
+        th:nth-child(2) { width: 18%; } /* 24h Fees */
+        th:nth-child(3) { width: 22%; } /* Total Value */
+        th:nth-child(4) { width: 18%; } /* Current Price */
+        th:nth-child(5) { width: 20%; } /* Status */
         td {
             padding: 8px;
             border-bottom: 1px solid #f0f0f0;
@@ -223,12 +278,11 @@ export class HtmlGenerator {
             font-size: 0.85em;
             white-space: nowrap;
         }
-        td:nth-child(1) { width: 20%; } /* Date */
-        td:nth-child(2) { width: 14%; } /* 24h Fees */
-        td:nth-child(3) { width: 18%; } /* Total Fees */
-        td:nth-child(4) { width: 18%; } /* Total Value */
-        td:nth-child(5) { width: 15%; } /* Current Price */
-        td:nth-child(6) { width: 15%; } /* Status */
+        td:nth-child(1) { width: 22%; } /* Date */
+        td:nth-child(2) { width: 18%; } /* 24h Fees */
+        td:nth-child(3) { width: 22%; } /* Total Value */
+        td:nth-child(4) { width: 18%; } /* Current Price */
+        td:nth-child(5) { width: 20%; } /* Status */
         tr:last-child td {
             border-bottom: none;
         }
@@ -307,7 +361,35 @@ export class HtmlGenerator {
             }
             .position-header {
                 flex-direction: column;
-                align-items: flex-start;
+                align-items: stretch;
+            }
+            .fees-indicators {
+                margin-top: 12px;
+                align-self: flex-start;
+                gap: 8px;
+            }
+            .average-fees-indicator, .total-fees-indicator {
+                padding: 8px 12px;
+                flex-direction: column;
+                justify-content: center;
+            }
+            .average-fees-label, .total-fees-label {
+                font-size: 0.7em;
+                margin-bottom: 4px;
+                margin-right: 0;
+            }
+            .average-fees-value, .total-fees-value {
+                font-size: 1.2em;
+            }
+            .position-title {
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+            .pair-name {
+                font-size: 1.3em;
+            }
+            .position-id {
+                font-size: 0.85em;
             }
             .total-value {
                 margin-top: 10px;
@@ -383,10 +465,13 @@ export class HtmlGenerator {
 
     // Calculate position age in days
     const oldestPosition = positions[positions.length - 1];
-    const oldestDate = oldestPosition ? new Date(oldestPosition.timestamp) : new Date();
-    const now = new Date();
-    const ageInDays = Math.floor((now.getTime() - oldestDate.getTime()) / (1000 * 60 * 60 * 24));
-    const ageText = ageInDays === 0 ? "New position" : ageInDays === 1 ? "1 day old" : `${ageInDays} days old`;
+    const positionAge = oldestPosition ? calculatePositionAge(oldestPosition.timestamp) : { days: 0, text: "New position" };
+
+    // Calculate average daily fees
+    const averageDailyFees = calculateAverageDailyFees(positions);
+    
+    // Get latest total fees
+    const latestTotalFees = latestPosition.uncollectedFees?.totalUSD || 0;
 
     const rows = positions
       .map((position, index) => {
@@ -405,7 +490,17 @@ export class HtmlGenerator {
                         <span class="fee-badge">${feePercent}%</span>
                     </div>
                     <div class="position-id" style="font-weight: 600; font-size: 1.1em; color: #333;">Range: ${priceRange}</div>
-                    <div class="position-id">Position #${positionId} • <span style="color: #667eea; font-weight: 600;">${ageText}</span></div>
+                    <div class="position-id">Position #${positionId} • <span style="color: #667eea; font-weight: 600;">${positionAge.text}</span></div>
+                </div>
+                <div class="fees-indicators">
+                    <div class="total-fees-indicator">
+                        <span class="total-fees-label">Total Fees</span>
+                        <span class="total-fees-value">$${latestTotalFees.toFixed(2)}</span>
+                    </div>
+                    <div class="average-fees-indicator">
+                        <span class="average-fees-label">Avg Daily Fees</span>
+                        <span class="average-fees-value">$${averageDailyFees.toFixed(2)}</span>
+                    </div>
                 </div>
             </div>
             
@@ -415,7 +510,6 @@ export class HtmlGenerator {
                         <tr>
                             <th>Date</th>
                             <th>24h Fees</th>
-                            <th>Total Fees (USD)</th>
                             <th>Total Value (USD)</th>
                             <th>Current Price (USD)</th>
                             <th>Status</th>
@@ -430,94 +524,39 @@ export class HtmlGenerator {
   }
 
   private buildTableRow(position: PositionData, previousPosition: PositionData | null): string {
-    const isInRange =
-      position.priceRange &&
-      position.priceRange.current >= position.priceRange.lower &&
-      position.priceRange.current <= position.priceRange.upper;
-
-    const statusBadge = isInRange
-      ? '<span class="status-badge status-in-range">In Range</span>'
-      : '<span class="status-badge status-out-range">Out of Range</span>';
+    const isInRange = isPositionInRange(position);
+    const statusBadge = formatStatusBadge(isInRange);
 
     // Calculate price percentage difference from previous entry
-    let currentPriceHtml = "";
-    if (position.priceRange) {
-      const basePrice = `$${position.priceRange.current.toFixed(2)}`;
+    const priceDiff = calculatePriceDifference(
+      position.priceRange?.current,
+      previousPosition?.priceRange?.current
+    );
+    const currentPriceHtml = formatPriceWithChange(
+      position.priceRange?.current,
+      priceDiff?.percentageChange || null
+    );
 
-      if (previousPosition && previousPosition.priceRange) {
-        const priceDiff = position.priceRange.current - previousPosition.priceRange.current;
-        const percentageChange = (priceDiff / previousPosition.priceRange.current) * 100;
-
-        if (Math.abs(percentageChange) < 0.01) {
-          currentPriceHtml = basePrice;
-        } else {
-          const sign = percentageChange >= 0 ? "+" : "";
-          const className = percentageChange >= 0 ? "price-change-positive" : "price-change-negative";
-          currentPriceHtml = `${basePrice} <span class="${className}">(${sign}${percentageChange.toFixed(2)}%)</span>`;
-        }
-      } else {
-        currentPriceHtml = basePrice;
-      }
-    } else {
-      currentPriceHtml = "N/A";
-    }
-
-    const date = new Date(position.timestamp);
-    const dateStr = date
-      .toLocaleDateString("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-        timeZone: TIMEZONE.SOFIA
-      })
-      .toUpperCase();
-    const timeStr = date.toLocaleTimeString("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-      timeZone: TIMEZONE.SOFIA
-    });
-    const fullDateStr = `${dateStr}, ${timeStr}`;
+    const fullDateStr = formatTableDate(position.timestamp, TIMEZONE.SOFIA);
 
     // Calculate 24h fee difference
-    let feesDifferenceHtml = "";
-    if (previousPosition && previousPosition.uncollectedFees?.totalUSD && position.uncollectedFees?.totalUSD) {
-      const diff = position.uncollectedFees.totalUSD - previousPosition.uncollectedFees.totalUSD;
-      const sign = diff >= 0 ? "+" : "";
-      feesDifferenceHtml = `<span class="fees-24h">${sign}$${Math.abs(diff).toFixed(2)}</span>`;
-    } else {
-      feesDifferenceHtml = `<span style="color: #718096;">-</span>`;
-    }
+    const feeDiff = calculateFeeDifference(position, previousPosition);
+    const feesDifferenceHtml = formatFeeDifference(feeDiff);
 
     // Calculate total value percentage difference from previous entry
-    let totalValueHtml = "";
-    const baseTotalValue = `<strong>$${position.totalValueUSD?.toFixed(2) || "0.00"}</strong>`;
-
-    if (
-      position.totalValueUSD &&
-      previousPosition &&
-      previousPosition.totalValueUSD &&
-      previousPosition.totalValueUSD > 0
-    ) {
-      const valueDiff = position.totalValueUSD - previousPosition.totalValueUSD;
-      const percentageChange = (valueDiff / previousPosition.totalValueUSD) * 100;
-
-      if (Math.abs(percentageChange) < 0.01) {
-        totalValueHtml = baseTotalValue;
-      } else {
-        const sign = percentageChange >= 0 ? "+" : "";
-        const className = percentageChange >= 0 ? "price-change-positive" : "price-change-negative";
-        totalValueHtml = `${baseTotalValue} <span class="${className}">(${sign}${percentageChange.toFixed(2)}%)</span>`;
-      }
-    } else {
-      totalValueHtml = baseTotalValue;
-    }
+    const valueDiff = calculateTotalValueDifference(
+      position.totalValueUSD,
+      previousPosition?.totalValueUSD
+    );
+    const totalValueHtml = formatTotalValueWithChange(
+      position.totalValueUSD,
+      valueDiff?.percentageChange || null
+    );
 
     return `
         <tr>
             <td>${fullDateStr}</td>
             <td>${feesDifferenceHtml}</td>
-            <td class="fees-total">$${position.uncollectedFees.totalUSD?.toFixed(2) || "0.00"}</td>
             <td>${totalValueHtml}</td>
             <td>${currentPriceHtml}</td>
             <td>${statusBadge}</td>
