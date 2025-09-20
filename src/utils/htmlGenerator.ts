@@ -205,3 +205,36 @@ export function calculateAverageDailyFees(positions: PositionData[]): number {
   
   return feeCount > 0 ? totalFees / feeCount : 0;
 }
+
+/**
+ * Calculate total profit/loss for a position
+ * @param positions Array of position data sorted by date (newest first)
+ * @returns Object with profit/loss value and percentage change
+ */
+export function calculateProfitLoss(positions: PositionData[]): { value: number; percentage: number } {
+  if (positions.length === 0) {
+    return { value: 0, percentage: 0 };
+  }
+  
+  const latest = positions[0];
+  const oldest = positions[positions.length - 1];
+  
+  if (!latest || !oldest) {
+    return { value: 0, percentage: 0 };
+  }
+  
+  // Calculate total earned fees (difference between latest and oldest total fees)
+  const earnedFees = (latest.uncollectedFees?.totalUSD || 0) - (oldest.uncollectedFees?.totalUSD || 0);
+  
+  // Calculate value change
+  const valueChange = (latest.totalValueUSD || 0) - (oldest.totalValueUSD || 0);
+  
+  // Total profit/loss = value change + earned fees
+  const totalProfitLoss = valueChange + earnedFees;
+  
+  // Calculate percentage based on initial investment
+  const initialValue = oldest.totalValueUSD || 0;
+  const percentage = initialValue > 0 ? (totalProfitLoss / initialValue) * 100 : 0;
+  
+  return { value: totalProfitLoss, percentage };
+}

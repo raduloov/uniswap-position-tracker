@@ -3,6 +3,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { SupabaseStorage } from "../storage/supabaseStorage";
 import { TIMEZONE } from "../constants";
+import { COLORS } from "../constants/colors";
 import {
   calculateFeeDifference,
   calculateTotalValueDifference,
@@ -14,7 +15,8 @@ import {
   formatStatusBadge,
   calculatePositionAge,
   formatTableDate,
-  calculateAverageDailyFees
+  calculateAverageDailyFees,
+  calculateProfitLoss
 } from "../utils/htmlGenerator";
 
 export class HtmlGenerator {
@@ -105,7 +107,7 @@ export class HtmlGenerator {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             margin: 0;
             padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, ${COLORS.BACKGROUND.PRIMARY_START} 0%, ${COLORS.BACKGROUND.PRIMARY_END} 100%);
             min-height: 100vh;
         }
         .container {
@@ -120,7 +122,7 @@ export class HtmlGenerator {
             height: 150px;
             margin: 20px auto;
             display: block;
-            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));
+            filter: drop-shadow(${COLORS.SHADOW.TEXT});
         }
         .uniswap-logo svg {
             width: 100%;
@@ -128,27 +130,27 @@ export class HtmlGenerator {
         }
         .uniswap-logo .st0,
         .uniswap-logo .st1 {
-            fill: white;
+            fill: ${COLORS.TEXT.WHITE};
         }
         h1 {
-            color: white;
+            color: ${COLORS.TEXT.WHITE};
             text-align: center;
             margin: 0;
             font-size: 2.5em;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            text-shadow: ${COLORS.SHADOW.TEXT};
         }
         .timestamp {
-            color: rgba(255,255,255,0.9);
+            color: ${COLORS.TEXT.LIGHT};
             text-align: center;
             margin-bottom: 30px;
             font-size: 1.1em;
         }
         .position-card {
-            background: white;
+            background: ${COLORS.BACKGROUND_SOLID.WHITE};
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            box-shadow: ${COLORS.SHADOW.CARD};
         }
         .table-container {
             overflow-x: auto;
@@ -161,7 +163,7 @@ export class HtmlGenerator {
             align-items: center;
             margin-bottom: 20px;
             padding-bottom: 15px;
-            border-bottom: 2px solid #f0f0f0;
+            border-bottom: 2px solid ${COLORS.BORDER.LIGHT};
         }
         .position-title {
             display: flex;
@@ -172,7 +174,7 @@ export class HtmlGenerator {
         .pair-name {
             font-size: 1.5em;
             font-weight: 600;
-            color: #333;
+            color: ${COLORS.TEXT.PRIMARY};
         }
         .protocol-badge, .fee-badge {
             display: inline-block;
@@ -180,18 +182,11 @@ export class HtmlGenerator {
             border-radius: 6px;
             font-size: 0.75em;
             font-weight: 600;
-            text-transform: uppercase;
-        }
-        .protocol-badge {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        .fee-badge {
-            background: #e9ecef;
-            color: #495057;
+            background: ${COLORS.BADGE.DEFAULT_BG};
+            color: ${COLORS.BADGE.DEFAULT_TEXT};
         }
         .position-id {
-            color: #666;
+            color: ${COLORS.TEXT.SECONDARY};
             font-size: 0.9em;
         }
         .fees-indicators {
@@ -199,7 +194,7 @@ export class HtmlGenerator {
             gap: 12px;
             align-items: center;
         }
-        .average-fees-indicator, .total-fees-indicator {
+        .average-fees-indicator, .total-fees-indicator, .profit-loss-indicator {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -207,12 +202,24 @@ export class HtmlGenerator {
             border-radius: 8px;
         }
         .average-fees-indicator {
-            border: 2px solid #48bb78;
-            background-color: rgba(72, 187, 120, 0.1);
+            border: 2px solid ${COLORS.STATUS.SUCCESS};
+            background-color: ${COLORS.INDICATOR_BG.SUCCESS};
         }
         .total-fees-indicator {
-            border: 2px solid #667eea;
-            background-color: rgba(102, 126, 234, 0.1);
+            border: 2px solid ${COLORS.STATUS.INFO};
+            background-color: ${COLORS.INDICATOR_BG.INFO};
+        }
+        .profit-loss-indicator.positive {
+            border: 2px solid ${COLORS.STATUS.SUCCESS};
+            background-color: ${COLORS.INDICATOR_BG.SUCCESS};
+        }
+        .profit-loss-indicator.negative {
+            border: 2px solid ${COLORS.STATUS.ERROR};
+            background-color: ${COLORS.INDICATOR_BG.ERROR};
+        }
+        .profit-loss-indicator.neutral {
+            border: 2px solid ${COLORS.STATUS.WARNING};
+            background-color: ${COLORS.INDICATOR_BG.WARNING};
         }
         .average-fees-label, .total-fees-label {
             font-size: 0.75em;
@@ -221,26 +228,61 @@ export class HtmlGenerator {
             letter-spacing: 0.5px;
             margin-bottom: 4px;
         }
+        .profit-loss-label {
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
         .average-fees-label {
-            color: #48bb78;
+            color: ${COLORS.STATUS.SUCCESS};
         }
         .total-fees-label {
-            color: #667eea;
+            color: ${COLORS.STATUS.INFO};
+        }
+        .profit-loss-label.positive {
+            color: ${COLORS.STATUS.SUCCESS};
+        }
+        .profit-loss-label.negative {
+            color: ${COLORS.STATUS.ERROR};
+        }
+        .profit-loss-label.neutral {
+            color: ${COLORS.STATUS.WARNING};
         }
         .average-fees-value {
-            color: #48bb78;
+            color: ${COLORS.STATUS.SUCCESS};
             font-size: 1.5em;
             font-weight: 700;
         }
         .total-fees-value {
-            color: #667eea;
+            color: ${COLORS.STATUS.INFO};
             font-size: 1.5em;
             font-weight: 700;
+        }
+        .profit-loss-value.positive {
+            color: ${COLORS.STATUS.SUCCESS};
+            font-size: 1.5em;
+            font-weight: 700;
+        }
+        .profit-loss-value.negative {
+            color: ${COLORS.STATUS.ERROR};
+            font-size: 1.5em;
+            font-weight: 700;
+        }
+        .profit-loss-value.neutral {
+            color: ${COLORS.STATUS.WARNING};
+            font-size: 1.5em;
+            font-weight: 700;
+        }
+        .profit-loss-percent {
+            font-weight: 500;
+            opacity: 0.85;
         }
         .total-value {
             font-size: 1.8em;
             font-weight: bold;
-            color: #48bb78;
+            color: ${COLORS.STATUS.SUCCESS};
         }
         table {
             width: 100%;
@@ -249,8 +291,8 @@ export class HtmlGenerator {
             max-width: 100%;
         }
         th {
-            background: #f7f8fa;
-            color: #4a5568;
+            background: ${COLORS.BACKGROUND_SOLID.HEADER};
+            color: ${COLORS.TEXT.MUTED};
             padding: 10px 8px;
             text-align: left;
             font-weight: 600;
@@ -258,7 +300,7 @@ export class HtmlGenerator {
             text-transform: uppercase;
             letter-spacing: 0.3px;
             white-space: nowrap;
-            border-bottom: 2px solid #e2e8f0;
+            border-bottom: 2px solid ${COLORS.BORDER.DEFAULT};
         }
         th:first-child {
             border-top-left-radius: 6px;
@@ -273,8 +315,8 @@ export class HtmlGenerator {
         th:nth-child(5) { width: 20%; } /* Status */
         td {
             padding: 8px;
-            border-bottom: 1px solid #f0f0f0;
-            color: #333;
+            border-bottom: 1px solid ${COLORS.BORDER.LIGHT};
+            color: ${COLORS.TEXT.PRIMARY};
             font-size: 0.85em;
             white-space: nowrap;
         }
@@ -287,22 +329,22 @@ export class HtmlGenerator {
             border-bottom: none;
         }
         tr:hover {
-            background-color: #f8f9fa;
+            background-color: ${COLORS.BACKGROUND_SOLID.HOVER};
         }
         .metric-label {
-            color: #666;
+            color: ${COLORS.TEXT.SECONDARY};
             font-weight: 500;
         }
         .metric-value {
             font-weight: 600;
-            color: #333;
+            color: ${COLORS.TEXT.PRIMARY};
         }
         .in-range {
-            color: #48bb78;
+            color: ${COLORS.STATUS.SUCCESS};
             font-weight: 600;
         }
         .out-range {
-            color: #f56565;
+            color: ${COLORS.STATUS.ERROR};
             font-weight: 600;
         }
         .status-badge {
@@ -313,42 +355,42 @@ export class HtmlGenerator {
             font-weight: 600;
         }
         .status-in-range {
-            background-color: #d4edda;
-            color: #155724;
+            background-color: ${COLORS.BADGE.IN_RANGE_BG};
+            color: ${COLORS.BADGE.IN_RANGE_TEXT};
         }
         .status-out-range {
-            background-color: #f8d7da;
-            color: #721c24;
+            background-color: ${COLORS.BADGE.OUT_RANGE_BG};
+            color: ${COLORS.BADGE.OUT_RANGE_TEXT};
         }
         .fees-total {
-            color: #667eea;
+            color: ${COLORS.STATUS.INFO};
             font-weight: 700;
             font-size: 1.1em;
         }
         .fees-24h {
-            color: #48bb78;
+            color: ${COLORS.STATUS.SUCCESS};
             font-weight: 700;
             font-size: 1.1em;
         }
         .price-change-positive {
-            color: #48bb78;
+            color: ${COLORS.STATUS.SUCCESS};
             font-weight: 600;
         }
         .price-change-negative {
-            color: #f56565;
+            color: ${COLORS.STATUS.ERROR};
             font-weight: 600;
         }
         .price-change-neutral {
-            color: #718096;
+            color: ${COLORS.STATUS.NEUTRAL};
             font-weight: 600;
         }
         .summary-row {
-            background: linear-gradient(to right, #f8f9fa, #ffffff);
+            background: linear-gradient(to right, ${COLORS.BACKGROUND_SOLID.GRADIENT_START}, ${COLORS.BACKGROUND_SOLID.GRADIENT_END});
             font-weight: 600;
         }
         .footer {
             text-align: center;
-            color: rgba(255,255,255,0.8);
+            color: ${COLORS.TEXT.LIGHTER};
             margin-top: 40px;
             font-size: 0.9em;
         }
@@ -365,21 +407,29 @@ export class HtmlGenerator {
             }
             .fees-indicators {
                 margin-top: 12px;
-                align-self: flex-start;
-                gap: 8px;
+                display: flex;
+                gap: 6px;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                width: 100%;
             }
-            .average-fees-indicator, .total-fees-indicator {
-                padding: 8px 12px;
+            .average-fees-indicator, .total-fees-indicator, .profit-loss-indicator {
+                padding: 6px 8px;
                 flex-direction: column;
                 justify-content: center;
+                flex: 1;
+                min-width: 0;
             }
-            .average-fees-label, .total-fees-label {
-                font-size: 0.7em;
-                margin-bottom: 4px;
+            .average-fees-label, .total-fees-label, .profit-loss-label {
+                margin-bottom: 3px;
                 margin-right: 0;
+                white-space: nowrap;
             }
             .average-fees-value, .total-fees-value {
-                font-size: 1.2em;
+                font-size: 1em;
+            }
+            .profit-loss-value.positive, .profit-loss-value.negative, .profit-loss-value.neutral {
+                font-size: 1em;
             }
             .position-title {
                 flex-wrap: wrap;
@@ -405,7 +455,7 @@ export class HtmlGenerator {
         <div class="page-header">
             <div class="uniswap-logo">
                 <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 168.3 193.8" style="enable-background: new 0 0 168.3 193.8" xml:space="preserve">
-                    <style type="text/css">.st0{fill:white;}.st1{fill-rule:evenodd;clip-rule:evenodd;fill:white;}</style>
+                    <style type="text/css">.st0{fill:${COLORS.TEXT.WHITE};}.st1{fill-rule:evenodd;clip-rule:evenodd;fill:${COLORS.TEXT.WHITE};}</style>
                     <path class="st0" d="M66,44.1c-2.1-0.3-2.2-0.4-1.2-0.5c1.9-0.3,6.3,0.1,9.4,0.8c7.2,1.7,13.7,6.1,20.6,13.8l1.8,2.1l2.6-0.4c11.1-1.8,22.5-0.4,32,4c2.6,1.2,6.7,3.6,7.2,4.2c0.2,0.2,0.5,1.5,0.7,2.8c0.7,4.7,0.4,8.2-1.1,10.9c-0.8,1.5-0.8,1.9-0.3,3.2c0.4,1,1.6,1.7,2.7,1.7c2.4,0,4.9-3.8,6.1-9.1l0.5-2.1l0.9,1c5.1,5.7,9.1,13.6,9.7,19.2l0.2,1.5l-0.9-1.3c-1.5-2.3-2.9-3.8-4.8-5.1c-3.4-2.3-7-3-16.5-3.5c-8.6-0.5-13.5-1.2-18.3-2.8c-8.2-2.7-12.4-6.2-22.1-19.1c-4.3-5.7-7-8.8-9.7-11.4C79.6,48.3,73.7,45.3,66,44.1z"/>
                     <path class="st0" d="M140.5,56.8c0.2-3.8,0.7-6.3,1.8-8.6c0.4-0.9,0.8-1.7,0.9-1.7c0.1,0-0.1,0.7-0.4,1.5c-0.8,2.2-0.9,5.3-0.4,8.8c0.7,4.5,1,5.1,5.8,10c2.2,2.3,4.8,5.2,5.8,6.4l1.7,2.2l-1.7-1.6c-2.1-2-6.9-5.8-8-6.3c-0.7-0.4-0.8-0.4-1.3,0.1c-0.4,0.4-0.5,1-0.5,3.9c-0.1,4.5-0.7,7.3-2.2,10.2c-0.8,1.5-0.9,1.2-0.2-0.5c0.5-1.3,0.6-1.9,0.6-6.2c0-8.7-1-10.8-7.1-14.3c-1.5-0.9-4.1-2.2-5.6-2.9c-1.6-0.7-2.8-1.3-2.7-1.3c0.2-0.2,6.1,1.5,8.4,2.5c3.5,1.4,4.1,1.5,4.5,1.4C140.2,60.1,140.4,59.3,140.5,56.8z"/>
                     <path class="st0" d="M70.1,71.7c-4.2-5.8-6.9-14.8-6.3-21.5l0.2-2.1l1,0.2c1.8,0.3,4.9,1.5,6.4,2.4c4,2.4,5.8,5.7,7.5,13.9c0.5,2.4,1.2,5.2,1.5,6.1c0.5,1.5,2.4,5,4,7.2c1.1,1.6,0.4,2.4-2.1,2.2C78.5,79.7,73.4,76.2,70.1,71.7z"/>
@@ -465,13 +515,21 @@ export class HtmlGenerator {
 
     // Calculate position age in days
     const oldestPosition = positions[positions.length - 1];
-    const positionAge = oldestPosition ? calculatePositionAge(oldestPosition.timestamp) : { days: 0, text: "New position" };
+    const positionAge = oldestPosition
+      ? calculatePositionAge(oldestPosition.timestamp)
+      : { days: 0, text: "New position" };
 
     // Calculate average daily fees
     const averageDailyFees = calculateAverageDailyFees(positions);
-    
+
     // Get latest total fees
     const latestTotalFees = latestPosition.uncollectedFees?.totalUSD || 0;
+
+    // Calculate profit/loss
+    const profitLoss = calculateProfitLoss(positions);
+    const profitLossClass = profitLoss.value > 0 ? "positive" : profitLoss.value < 0 ? "negative" : "neutral";
+    const profitLossSign = profitLoss.value >= 0 ? "+" : "";
+    const profitLossPercentSign = profitLoss.percentage >= 0 ? "+" : "";
 
     const rows = positions
       .map((position, index) => {
@@ -489,10 +547,20 @@ export class HtmlGenerator {
                         <span class="protocol-badge">v3</span>
                         <span class="fee-badge">${feePercent}%</span>
                     </div>
-                    <div class="position-id" style="font-weight: 600; font-size: 1.1em; color: #333;">Range: ${priceRange}</div>
-                    <div class="position-id">Position #${positionId} • <span style="color: #667eea; font-weight: 600;">${positionAge.text}</span></div>
+                    <div class="position-id" style="font-weight: 600; font-size: 1.1em; color: ${COLORS.TEXT.PRIMARY};">Range: ${priceRange}</div>
+                    <div class="position-id">Position #${positionId} • <span style="color: ${COLORS.STATUS.INFO}; font-weight: 600;">${
+      positionAge.text
+    }</span></div>
                 </div>
                 <div class="fees-indicators">
+                    <div class="profit-loss-indicator ${profitLossClass}">
+                        <span class="profit-loss-label ${profitLossClass}">P/L <span class="profit-loss-percent">(${profitLossPercentSign}${profitLoss.percentage.toFixed(
+      1
+    )}%)</span></span>
+                        <span class="profit-loss-value ${profitLossClass}">${profitLossSign}$${Math.abs(
+      profitLoss.value
+    ).toFixed(2)}</span>
+                    </div>
                     <div class="total-fees-indicator">
                         <span class="total-fees-label">Total Fees</span>
                         <span class="total-fees-value">$${latestTotalFees.toFixed(2)}</span>
@@ -528,14 +596,8 @@ export class HtmlGenerator {
     const statusBadge = formatStatusBadge(isInRange);
 
     // Calculate price percentage difference from previous entry
-    const priceDiff = calculatePriceDifference(
-      position.priceRange?.current,
-      previousPosition?.priceRange?.current
-    );
-    const currentPriceHtml = formatPriceWithChange(
-      position.priceRange?.current,
-      priceDiff?.percentageChange || null
-    );
+    const priceDiff = calculatePriceDifference(position.priceRange?.current, previousPosition?.priceRange?.current);
+    const currentPriceHtml = formatPriceWithChange(position.priceRange?.current, priceDiff?.percentageChange || null);
 
     const fullDateStr = formatTableDate(position.timestamp, TIMEZONE.SOFIA);
 
@@ -544,14 +606,8 @@ export class HtmlGenerator {
     const feesDifferenceHtml = formatFeeDifference(feeDiff);
 
     // Calculate total value percentage difference from previous entry
-    const valueDiff = calculateTotalValueDifference(
-      position.totalValueUSD,
-      previousPosition?.totalValueUSD
-    );
-    const totalValueHtml = formatTotalValueWithChange(
-      position.totalValueUSD,
-      valueDiff?.percentageChange || null
-    );
+    const valueDiff = calculateTotalValueDifference(position.totalValueUSD, previousPosition?.totalValueUSD);
+    const totalValueHtml = formatTotalValueWithChange(position.totalValueUSD, valueDiff?.percentageChange || null);
 
     return `
         <tr>
