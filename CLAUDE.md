@@ -260,10 +260,12 @@ The project includes two GitHub Actions workflows for automation:
 ### 1. Track Positions and Deploy (`track-positions-and-deploy.yml`)
 
 **Triggers:**
+
 - **Schedule**: Daily at 22:30 UTC (00:30 Sofia time) via cron
 - **Manual**: Can be triggered manually via `workflow_dispatch`
 
 **What it does:**
+
 1. Checks out the repository
 2. Sets up Node.js 20 with npm caching
 3. Caches TypeScript build output for faster runs
@@ -274,6 +276,7 @@ The project includes two GitHub Actions workflows for automation:
 8. Deploys to GitHub Pages
 
 **Required Secrets:**
+
 - `WALLET_ADDRESS` or `POSITION_ID` - Track specific wallet/position
 - `GRAPH_API_KEY` - The Graph API key (optional but recommended)
 - `SUPABASE_URL` - Supabase project URL
@@ -282,10 +285,12 @@ The project includes two GitHub Actions workflows for automation:
 ### 2. Generate Report from Supabase (`generate-report.yml`)
 
 **Triggers:**
+
 - **Push**: Automatically on push to `main` branch
 - **Manual**: Can be triggered manually via `workflow_dispatch`
 
 **What it does:**
+
 1. Checks out the repository
 2. Sets up Node.js 20 with npm caching
 3. Installs dependencies
@@ -294,6 +299,7 @@ The project includes two GitHub Actions workflows for automation:
 6. Deploys to GitHub Pages
 
 **Required Secrets:**
+
 - `SUPABASE_URL` - Supabase project URL
 - `SUPABASE_ANON_KEY` - Supabase anonymous key
 - Note: Does NOT require `WALLET_ADDRESS` since it only reads existing data
@@ -375,3 +381,4 @@ uniswap-position-tracker/
   - Local runs require either WALLET_ADDRESS or POSITION_ID
   - GitHub Actions environment automatically skips validation
   - Process exits with code 1 on errors for proper CI/CD failure detection
+- **IMPORTANT**: Always run `npm run typecheck` after making code changes to ensure type safety

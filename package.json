@@ -14,6 +14,7 @@
     "report-local": "NODE_NO_WARNINGS=1 SUPABASE_URL= SUPABASE_ANON_KEY= tsx src/index.ts --report",
     "prod:track:once": "NODE_NO_WARNINGS=1 node dist/index.js --once",
     "prod:report": "NODE_NO_WARNINGS=1 node dist/index.js --report",
+    "typecheck": "tsc --noEmit",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
