@@ -6,6 +6,7 @@ This is a TypeScript application that automatically tracks Uniswap V3 liquidity 
 
 ## Key Features
 
+- **Multi-chain support**: Fetches positions from both Ethereum and Arbitrum chains
 - Fetches all active Uniswap V3 positions for a wallet address
 - Calculates accurate token amounts using Uniswap V3 math
 - Determines USD values using stablecoin references (USDT, USDC, etc.)
@@ -15,13 +16,15 @@ This is a TypeScript application that automatically tracks Uniswap V3 liquidity 
 - Saves historical data to JSON file for trend analysis
 - Generates HTML reports with historical position tracking tables
 - Tracks 24-hour fee changes between position snapshots
+- Chain-specific badges with logos in HTML reports
 
 ## Technical Architecture
 
 ### Data Source
 
-- Uses The Graph Protocol's Uniswap V3 subgraph via REST API
-- Endpoint: `https://gateway.thegraph.com/api/[api-key]/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV`
+- Uses The Graph Protocol's Uniswap V3 subgraphs via REST API
+- **Ethereum endpoint**: `https://gateway.thegraph.com/api/[api-key]/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV`
+- **Arbitrum endpoint**: `https://gateway.thegraph.com/api/[api-key]/subgraphs/id/HyW7A86UEdYVt5b9Lrw8W2F98yKecerHKutZTRbSCX27`
 - Sends GraphQL-formatted queries via axios POST requests (not using a GraphQL client)
 - Can work without API key using development endpoint (rate limited)
 - Recommended to get free API key from https://thegraph.com/studio/apikeys/
@@ -38,15 +41,19 @@ This is a TypeScript application that automatically tracks Uniswap V3 liquidity 
 2. **src/client/uniswapPositionTracker.ts**
 
    - Main class orchestrating all functionality
+   - Creates separate clients for Ethereum and Arbitrum chains
+   - Fetches positions from both chains in parallel using Promise.all
    - Handles scheduling and position checking
    - Supports both Supabase and local file storage
-   - Enhanced console output with formatting and timezone display
+   - Enhanced console output with formatting, timezone display, and chain breakdown
 
 3. **src/client/uniswapClient.ts**
 
    - Handles all Graph API interactions
+   - Supports multiple chains via Chain enum parameter
    - Implements Uniswap V3 math for position calculations
    - Uses modularized utilities and schemas
+   - Handles zero liquidity positions gracefully (avoids NaN values)
    - Key methods:
      - `getPositions()`: Fetches positions from Graph
      - `transformPosition()`: Converts Graph data to our format
@@ -98,16 +105,19 @@ This is a TypeScript application that automatically tracks Uniswap V3 liquidity 
 9. **src/constants/**
 
    - `index.ts`: Centralized constants and configuration
-   - Graph API configuration (endpoints, limits)
+   - Graph API configuration for multiple chains:
+     - Ethereum subgraph endpoint
+     - Arbitrum subgraph endpoint
    - Uniswap V3 math constants (Q32, Q96, Q128)
    - Stablecoin symbols for USD value determination
    - Timezone configuration
 
 10. **src/types/**
 
-    - `index.ts`: TypeScript interfaces
+    - `index.ts`: TypeScript interfaces and enums
     - `GraphQLPosition`: Graph API response structure
-    - `PositionData`: Internal position data model
+    - `PositionData`: Internal position data model with chain field
+    - `Chain`: Enum for supported chains (ETHEREUM, ARBITRUM)
     - Clear separation between API and internal types
 
 11. **src/schemas/**
@@ -120,7 +130,7 @@ This is a TypeScript application that automatically tracks Uniswap V3 liquidity 
 
 12. **src/utils/**
     - `index.ts`: Utility functions
-    - `getGraphEndpoint()`: Constructs Graph API endpoint
+    - `getGraphEndpoint(chain)`: Constructs Graph API endpoint for specified chain
     - `getSqrtPriceX96FromTick()`: Uniswap V3 tick-to-price conversion
     - `isGithubActionsEnv`: Detects GitHub Actions environment
     - Mathematical helper functions
@@ -208,6 +218,7 @@ npm run prod:report
 
 The app saves position data in JSON format with:
 
+- **Chain identifier**: Which blockchain the position is on (ethereum/arbitrum)
 - Token amounts and USD values
 - Liquidity and fee tier
 - Price range (ticks and human-readable)
@@ -218,6 +229,7 @@ The app saves position data in JSON format with:
 ### HTML Report Features
 
 - **Historical Position Table**: Each position tracked over time
+- **Chain Badges**: Visual indicators with logos for Ethereum/Arbitrum chains
 - **Date Format**: Day of week + date (e.g., THU, SEP 18)
 - **24h Fees Column**: Shows fee changes between snapshots (+$X.XX or -$X.XX)
 - **Current Price Column**: Shows current price with percentage change from previous entry in parentheses (e.g., $3,450.23 (+2.45%))
@@ -225,6 +237,7 @@ The app saves position data in JSON format with:
 - **Status Badges**: Visual indicators for In Range/Out of Range
 - **Responsive Design**: Works on desktop and mobile devices
 - **Auto-generated**: Updates with each cron run
+- **Logo Assets**: Uses SVG logos from docs/assets folder
 
 ## Known Issues and Solutions
 
@@ -244,9 +257,33 @@ The app saves position data in JSON format with:
 
 **Solution**: Recognized that Graph's token prices are exchange rates, used stablecoin as reference
 
+### Issue: Zero liquidity positions showing NaN values
+
+**Solution**: Added proper NaN checks and defaults to 0 for out-of-range positions
+
+## Multi-Chain Implementation
+
+### Supported Chains
+- **Ethereum Mainnet**: Primary chain support
+- **Arbitrum One**: Layer 2 support for lower fees and faster transactions
+
+### How It Works
+1. Creates separate `UniswapClient` instances for each chain
+2. Fetches positions from both chains in parallel using `Promise.all`
+3. Combines results and displays chain breakdown in console
+4. Each position includes chain identifier in data structure
+5. HTML reports show chain badges with appropriate logos
+
+### Console Output
+```
+Found X active position(s)
+  - Ethereum: Y position(s)
+  - Arbitrum: Z position(s)
+```
+
 ## Future Enhancements
 
-- Add support for multiple chains (Polygon, Arbitrum, etc.)
+- Add support for additional chains (Polygon, Optimism, Base, etc.)
 - Email/Discord notifications for significant changes
 - Web dashboard for visualization
 - Support for Uniswap V2 positions

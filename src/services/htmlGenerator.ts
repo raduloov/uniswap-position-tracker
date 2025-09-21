@@ -498,7 +498,7 @@ export class HtmlGenerator {
     const poolName = `${latestPosition.token0.symbol} / ${latestPosition.token1.symbol}`;
     const feePercent = (latestPosition.fee / 10000).toString();
     const chainName = latestPosition.chain
-      ? latestPosition.chain.charAt(0).toUpperCase() + latestPosition.chain.slice(1)
+      ? latestPosition.chain.toString().charAt(0).toUpperCase() + latestPosition.chain.toString().slice(1)
       : "Unknown";
 
     const priceRange =
