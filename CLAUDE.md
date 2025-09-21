@@ -318,6 +318,7 @@ The project includes two GitHub Actions workflows for automation:
 - `GRAPH_API_KEY` - The Graph API key (optional but recommended)
 - `SUPABASE_URL` - Supabase project URL
 - `SUPABASE_ANON_KEY` - Supabase anonymous key
+- `DISCORD_WEBHOOK_URL` - Discord webhook URL (optional)
 
 ### 2. Generate Report from Supabase (`generate-report.yml`)
 

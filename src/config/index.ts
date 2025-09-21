@@ -8,7 +8,8 @@ export const config = {
   positionId: process.env["POSITION_ID"],
   scheduleTime: process.env["SCHEDULE_TIME"] || "09:00",
   dataFilePath: process.env["DATA_FILE_PATH"] || "./data/positions.json",
-  graphApiKey: process.env["GRAPH_API_KEY"] || ""
+  graphApiKey: process.env["GRAPH_API_KEY"] || "",
+  discordWebhookUrl: process.env["DISCORD_WEBHOOK_URL"] || ""
 };
 
 export function validateConfig(): void {

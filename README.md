@@ -1,16 +1,17 @@
 # Uniswap Position Tracker
 
-Automated tracking system for Uniswap V3 liquidity positions with historical data logging and web reporting.
+Automated tracking system for Uniswap V3 liquidity positions with historical data logging, web reporting, and Discord notifications.
 
 ## Features
 
-- 📊 Tracks Uniswap V3 positions with real-time data from The Graph
-- 💰 Calculates USD values and uncollected fees
-- 📈 Shows price changes between snapshots (percentage)
-- 🕐 Automated daily tracking via cron scheduler
-- 🌐 Generates HTML reports with historical data
-- ☁️ Optional Supabase integration for data storage
-- 🚀 GitHub Actions deployment to GitHub Pages
+- 📊 **Multi-chain Support**: Tracks positions on Ethereum and Arbitrum
+- 💰 **Comprehensive Analytics**: Calculates USD values, uncollected fees, and P/L tracking
+- 📈 **Price Monitoring**: Shows real-time price changes with percentage movements
+- 🔔 **Discord Notifications**: Real-time updates with portfolio summaries and alerts
+- 🕐 **Automated Tracking**: Daily snapshots via cron scheduler
+- 🌐 **Web Reports**: HTML reports with historical data visualization
+- ☁️ **Cloud Storage**: Optional Supabase integration for data persistence
+- 🚀 **CI/CD**: Automated deployment via GitHub Actions to GitHub Pages
 
 ## Quick Start
 
@@ -19,6 +20,7 @@ Automated tracking system for Uniswap V3 liquidity positions with historical dat
 - Node.js 20+
 - Uniswap V3 position ID or wallet address
 - (Optional) Graph API key from [The Graph](https://thegraph.com/studio/apikeys/)
+- (Optional) Discord webhook for notifications
 
 ### Installation
 
@@ -30,21 +32,34 @@ npm install
 
 ### Configuration
 
-Create `.env` file:
+Create `.env` file from the example:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your settings:
 
 ```env
 # Required (choose one)
 WALLET_ADDRESS=0x...        # Track all positions for wallet
 POSITION_ID=12345          # Track specific position
 
-# Optional
-GRAPH_API_KEY=your-key     # For better reliability
-SCHEDULE_TIME=09:00        # Daily run time (24h format)
-DATA_FILE_PATH=./data/positions.json
+# Optional - API Keys
+GRAPH_API_KEY=your-key     # For better reliability (recommended)
 
-# Optional - Supabase
+# Optional - Discord Integration
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+
+# Optional - Supabase Cloud Storage
 SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
+
+# Schedule Configuration
+SCHEDULE_TIME=09:00        # Daily run time (24h format)
+
+# Local Storage (if not using Supabase)
+DATA_FILE_PATH=./data/positions.json
 ```
 
 ### Usage
@@ -56,51 +71,47 @@ npm run build
 # Track positions with daily schedule
 npm run track
 
-# Track positions with daily schedule using DATA_FILE_PATH for DB
-npm run track-local
-
 # Track positions once immediately
 npm run track:once
 
-# # Track positions once immediately using DATA_FILE_PATH for DB
+# Track positions locally (ignores Supabase)
+npm run track-local
 npm run track-local:once
 
-# Generate HTML report from existing data
+# Generate HTML report
 npm run report
+npm run report-local  # Uses local file instead of Supabase
 
-# Generate HTML report from existing data using DATA_FILE_PATH for DB
-npm run report-local
+# Send Discord notification
+npm run discord
 
 # Production commands (uses compiled JS)
-npm run prod:track
 npm run prod:track:once
 npm run prod:report
+npm run prod:discord
 ```
-
-## HTML Reports
-
-The tracker generates an HTML report at `docs/index.html` showing:
-
-- Historical position values
-- Fee accumulation over time
-- Price changes with percentages
-- In/Out of range status
-- 24-hour fee differences
 
 ## GitHub Actions Deployment
 
-The repository includes two automated workflows:
+The repository includes automated workflows:
 
 ### 1. Track Positions and Deploy
 
-- **Schedule**: Daily at 22:30 UTC (00:30 Sofia time)
+- **Schedule**: Daily at 22:30 UTC
 - **Manual Trigger**: Available via workflow_dispatch
-- **Actions**: Tracks positions, saves to Supabase, generates report, deploys to GitHub Pages
+- **Actions**:
+  - Tracks positions from both chains
+  - Saves to Supabase
+  - Sends Discord notifications
+  - Generates HTML report
+  - Deploys to GitHub Pages
 
 ### 2. Generate Report from Supabase
 
 - **Triggers**: On push to main branch or manual dispatch
-- **Actions**: Generates HTML report from Supabase data, deploys to GitHub Pages
+- **Actions**:
+  - Generates HTML report from Supabase data
+  - Deploys to GitHub Pages
 - **Note**: Doesn't require WALLET_ADDRESS (only reads existing data)
 
 ### Setup
@@ -109,45 +120,54 @@ The repository includes two automated workflows:
    - `WALLET_ADDRESS` or `POSITION_ID`
    - `GRAPH_API_KEY` (optional but recommended)
    - `SUPABASE_URL` and `SUPABASE_ANON_KEY`
+   - `DISCORD_WEBHOOK_URL` (optional)
 2. Enable GitHub Pages in repository settings (Source: GitHub Actions)
 3. Access your live report at: `https://[username].github.io/uniswap-position-tracker/`
+
+## Multi-Chain Support
+
+The tracker supports multiple blockchain networks:
+
+- **Ethereum Mainnet**
+- **Arbitrum One**
+
+Each position is tracked with chain-specific data and displayed with appropriate badges in reports.
 
 ## Project Structure
 
 ```
 ├── src/
 │   ├── index.ts                      # Main entry point
+│   ├── notifyDiscord.ts             # Discord notification script
 │   ├── client/
-│   │   ├── uniswapPositionTracker.ts # Main orchestration class
+│   │   ├── uniswapPositionTracker.ts # Main orchestration
 │   │   └── uniswapClient.ts         # Graph API & calculations
 │   ├── storage/
 │   │   ├── dataStorage.ts           # Local file persistence
-│   │   └── supabaseStorage.ts       # Supabase cloud storage
+│   │   └── supabaseStorage.ts       # Cloud storage
 │   ├── services/
-│   │   ├── scheduler.ts             # Cron scheduling (timezone-aware)
-│   │   └── htmlGenerator.ts         # HTML report generation
+│   │   ├── scheduler.ts             # Cron scheduling
+│   │   ├── htmlGenerator.ts         # HTML report generation
+│   │   └── discordNotifier.ts       # Discord integration
 │   ├── config/
-│   │   ├── index.ts                 # Config loading & validation
-│   │   └── schema.ts                # Config TypeScript interfaces
+│   │   └── index.ts                 # Configuration management
 │   ├── constants/
-│   │   └── index.ts                 # Centralized constants
-│   ├── schemas/
-│   │   └── index.ts                 # Query builders for The Graph API
+│   │   ├── index.ts                 # Core constants
+│   │   ├── colors.ts                # Color definitions
+│   │   └── discordEmojis.ts        # Discord emoji mappings
 │   ├── types/
 │   │   └── index.ts                 # TypeScript interfaces
 │   └── utils/
-│       └── index.ts                 # Utility functions
+│       ├── position.ts              # Position calculations
+│       ├── formatting.ts            # Formatting utilities
+│       ├── positionHistory.ts       # History management
+│       └── summary.ts               # Portfolio summaries
 ├── docs/
-│   └── index.html                   # Generated HTML report (GitHub Pages)
-├── data/                            # Local output directory (git-ignored)
-│   └── positions.json               # Historical position data
+│   ├── index.html                   # Generated report
+│   └── assets/                      # Chain logos and assets
 ├── .github/
-│   └── workflows/
-│       ├── generate-report.yml      # Report generation workflow
-│       └── track-positions-and-deploy.yml  # Daily tracking workflow
-├── .env                             # Configuration (create from .env.example)
-├── tsconfig.json                    # TypeScript config
-└── package.json                     # Dependencies
+│   └── workflows/                   # GitHub Actions
+└── CLAUDE.md                        # Detailed documentation
 ```
 
 ## License
