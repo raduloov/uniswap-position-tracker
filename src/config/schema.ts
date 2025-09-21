@@ -35,7 +35,4 @@ export interface EnvironmentVariables {
   DATA_FILE_PATH?: string;
   GRAPH_API_KEY?: string;
   TIMEZONE?: string;
-  RETRY_ATTEMPTS?: string;
-  RETRY_DELAY?: string;
-  REQUEST_TIMEOUT?: string;
 }

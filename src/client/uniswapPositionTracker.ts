@@ -4,10 +4,12 @@ import { HtmlGenerator } from "../services/htmlGenerator";
 import { Scheduler } from "../services/scheduler";
 import { DataStorage } from "../storage/dataStorage";
 import { SupabaseStorage } from "../storage/supabaseStorage";
+import { Chain } from "../types";
 import UniswapClient from "./uniswapClient";
 
 class UniswapPositionTracker {
-  private client: UniswapClient;
+  private ethereumClient: UniswapClient;
+  private arbitrumClient: UniswapClient;
   private storage: DataStorage;
   private supabaseStorage: SupabaseStorage;
   private scheduler: Scheduler;
@@ -16,7 +18,8 @@ class UniswapPositionTracker {
   constructor() {
     validateConfig();
 
-    this.client = new UniswapClient(config.graphApiKey);
+    this.ethereumClient = new UniswapClient(Chain.ETHEREUM);
+    this.arbitrumClient = new UniswapClient(Chain.ARBITRUM);
     this.storage = new DataStorage(config.dataFilePath);
     this.supabaseStorage = new SupabaseStorage();
     this.scheduler = new Scheduler();
@@ -30,7 +33,13 @@ class UniswapPositionTracker {
       console.log(`Wallet: ${config.walletAddress}`);
       console.log("=".repeat(50));
 
-      const positions = await this.client.getPositions(config.walletAddress, config.positionId);
+      // Fetch positions from both chains
+      const [ethereumPositions, arbitrumPositions] = await Promise.all([
+        this.ethereumClient.getPositions(config.walletAddress, config.positionId),
+        this.arbitrumClient.getPositions(config.walletAddress, config.positionId)
+      ]);
+
+      const positions = [...ethereumPositions, ...arbitrumPositions];
 
       if (positions.length === 0) {
         console.log("No active positions found for this wallet");
@@ -38,9 +47,11 @@ class UniswapPositionTracker {
       }
 
       console.log(`\nFound ${positions.length} active position(s)`);
+      console.log(`  - Ethereum: ${ethereumPositions.length} position(s)`);
+      console.log(`  - Arbitrum: ${arbitrumPositions.length} position(s)`);
 
       for (const position of positions) {
-        console.log(`\nPosition #${position.positionId}:`);
+        console.log(`\nPosition #${position.positionId} (${position.chain}):`);
         console.log(`  Pool: ${position.token0.symbol}/${position.token1.symbol}`);
         console.log(
           `  Token0: ${position.token0.amount} ${position.token0.symbol} ($${position.token0.valueUSD?.toFixed(2)})`

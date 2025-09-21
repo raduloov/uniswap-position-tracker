@@ -3,8 +3,16 @@ export const DEFAULT_DATA_PATH = "./data/positions.json";
 
 export const GRAPH_CONSTANTS = {
   ENDPOINTS: {
-    DECENTRALIZED_TEMPLATE:
-      "https://gateway.thegraph.com/api/[api-key]/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV",
+    ETHEREUM: {
+      DECENTRALIZED_TEMPLATE:
+        "https://gateway.thegraph.com/api/[api-key]/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV",
+      CHAIN_NAME: "Ethereum"
+    },
+    ARBITRUM: {
+      DECENTRALIZED_TEMPLATE:
+        "https://gateway.thegraph.com/api/[api-key]/subgraphs/id/HyW7A86UEdYVt5b9Lrw8W2F98yKecerHKutZTRbSCX27",
+      CHAIN_NAME: "Arbitrum"
+    },
     API_KEY_PLACEHOLDER: "[api-key]"
   },
   QUERY_LIMITS: {

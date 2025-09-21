@@ -1,9 +1,16 @@
+import { config } from "../config";
 import { GRAPH_CONSTANTS, UNISWAP_CONSTANTS } from "../constants";
+import { Chain } from "../types";
 
 export const isGithubActionsEnv = !!process.env["GITHUB_ACTIONS"];
 
-export const getGraphEndpoint = (apiKey: string) =>
-  GRAPH_CONSTANTS.ENDPOINTS.DECENTRALIZED_TEMPLATE.replace(GRAPH_CONSTANTS.ENDPOINTS.API_KEY_PLACEHOLDER, apiKey);
+export const getGraphEndpoint = (chain: Chain) => {
+  const template =
+    chain === Chain.ARBITRUM
+      ? GRAPH_CONSTANTS.ENDPOINTS.ARBITRUM.DECENTRALIZED_TEMPLATE
+      : GRAPH_CONSTANTS.ENDPOINTS.ETHEREUM.DECENTRALIZED_TEMPLATE;
+  return template.replace(GRAPH_CONSTANTS.ENDPOINTS.API_KEY_PLACEHOLDER, config.graphApiKey);
+};
 
 export const getSqrtPriceX96FromTick = (tick: number): bigint => {
   const absTick = tick < 0 ? -tick : tick;

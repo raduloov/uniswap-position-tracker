@@ -1,23 +1,24 @@
 import { getSqrtPriceX96FromTick } from "../utils/index";
 import axios from "axios";
-import { GraphQLPosition, PositionData } from "../types";
+import { Chain, GraphQLPosition, PositionData } from "../types";
 import { UNISWAP_CONSTANTS, STABLECOIN_SYMBOLS } from "../constants";
 import { getGraphEndpoint } from "../utils";
 import { buildPositionByIdQuery, buildPositionsByOwnerQuery } from "../schemas";
 
 class UniswapClient {
-  private subgraphUrl: string;
+  private chain: Chain;
 
-  constructor(apiKey: string) {
-    this.subgraphUrl = getGraphEndpoint(apiKey);
+  constructor(chain: Chain) {
+    this.chain = chain;
   }
 
   async getPositions(walletAddress: string, positionId?: string): Promise<PositionData[]> {
     try {
       const query = positionId ? buildPositionByIdQuery(positionId) : buildPositionsByOwnerQuery(walletAddress);
+      const subgraphUrl = getGraphEndpoint(this.chain);
 
       const response = await axios.post(
-        this.subgraphUrl,
+        subgraphUrl,
         {
           query
         },
@@ -36,17 +37,16 @@ class UniswapClient {
       const positions: GraphQLPosition[] = response.data.data?.positions;
 
       if (!positions || positions.length === 0) {
-        console.log("No active positions found");
         return [];
       }
 
-      return positions.map(pos => this.transformPosition(pos));
+      return positions.map(pos => this.transformPosition(pos, this.chain));
     } catch (error: any) {
       return [];
     }
   }
 
-  private transformPosition(pos: GraphQLPosition): PositionData {
+  private transformPosition(pos: GraphQLPosition, chain: Chain): PositionData {
     // Get decimals
     const decimals0 = parseInt(pos.token0.decimals);
     const decimals1 = parseInt(pos.token1.decimals);
@@ -158,31 +158,33 @@ class UniswapClient {
     const priceRatioLower = Math.pow(UNISWAP_CONSTANTS.MATH.TICK_BASE, -ticksToLower);
     const priceRatioUpper = Math.pow(UNISWAP_CONSTANTS.MATH.TICK_BASE, ticksToUpper);
 
-    if (token1IsStable) {
-      // Show WETH price range in USDT
-      priceRange = {
-        lower: currentWETHPrice * priceRatioLower,
-        upper: currentWETHPrice * priceRatioUpper,
-        current: currentWETHPrice,
-        currency: pos.token1.symbol
-      };
-    } else if (token0IsStable) {
-      // Show token1 price range in token0 (stablecoin)
-      const currentToken1Price = 1 / token1PriceInToken0;
-      priceRange = {
-        lower: currentToken1Price * priceRatioLower,
-        upper: currentToken1Price * priceRatioUpper,
-        current: currentToken1Price,
-        currency: pos.token0.symbol
-      };
-    } else {
-      // Neither is stable, use the exchange rate
-      priceRange = {
-        lower: currentWETHPrice * priceRatioLower,
-        upper: currentWETHPrice * priceRatioUpper,
-        current: currentWETHPrice,
-        currency: pos.token1.symbol
-      };
+    if (currentWETHPrice > 0 && !isNaN(currentWETHPrice) && !isNaN(priceRatioLower) && !isNaN(priceRatioUpper)) {
+      if (token1IsStable) {
+        // Show WETH price range in USDT
+        priceRange = {
+          lower: currentWETHPrice * priceRatioLower,
+          upper: currentWETHPrice * priceRatioUpper,
+          current: currentWETHPrice,
+          currency: pos.token1.symbol
+        };
+      } else if (token0IsStable && token1PriceInToken0 > 0) {
+        // Show token1 price range in token0 (stablecoin)
+        const currentToken1Price = 1 / token1PriceInToken0;
+        priceRange = {
+          lower: currentToken1Price * priceRatioLower,
+          upper: currentToken1Price * priceRatioUpper,
+          current: currentToken1Price,
+          currency: pos.token0.symbol
+        };
+      } else {
+        // Neither is stable, use the exchange rate
+        priceRange = {
+          lower: currentWETHPrice * priceRatioLower,
+          upper: currentWETHPrice * priceRatioUpper,
+          current: currentWETHPrice,
+          currency: pos.token1.symbol
+        };
+      }
     }
 
     return {
@@ -190,6 +192,7 @@ class UniswapClient {
       date: new Date().toLocaleDateString(),
       positionId: pos.id,
       owner: pos.owner,
+      chain,
       token0: {
         symbol: pos.token0.symbol,
         address: pos.token0.id,
@@ -209,17 +212,19 @@ class UniswapClient {
       uncollectedFees: {
         token0: uncollectedFees0.toFixed(6),
         token1: uncollectedFees1.toFixed(6),
-        token0USD: uncollectedFees0 * (token0USD / token0Amount),
-        token1USD: uncollectedFees1 * (token1USD / token1Amount),
-        totalUSD: uncollectedFees0 * (token0USD / token0Amount) + uncollectedFees1 * (token1USD / token1Amount)
+        token0USD: token0Amount > 0 && !isNaN(token0USD) ? uncollectedFees0 * (token0USD / token0Amount) : 0,
+        token1USD: token1Amount > 0 && !isNaN(token1USD) ? uncollectedFees1 * (token1USD / token1Amount) : 0,
+        totalUSD:
+          (token0Amount > 0 && !isNaN(token0USD) ? uncollectedFees0 * (token0USD / token0Amount) : 0) +
+          (token1Amount > 0 && !isNaN(token1USD) ? uncollectedFees1 * (token1USD / token1Amount) : 0)
       },
-      totalValueUSD: token0USD + token1USD,
+      totalValueUSD: !isNaN(token0USD) && !isNaN(token1USD) ? token0USD + token1USD : 0,
       pool: {
         address: pos.pool.id,
         currentTick: currentTick,
         sqrtPriceX96: pos.pool.sqrtPrice
       },
-      priceRange: priceRange
+      ...(priceRange && { priceRange })
     };
   }
 

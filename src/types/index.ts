@@ -45,11 +45,17 @@ export interface GraphQLPosition {
   feeGrowthInside1LastX128: string;
 }
 
+export enum Chain {
+  ETHEREUM = "ethereum",
+  ARBITRUM = "arbitrum"
+}
+
 export interface PositionData {
   timestamp: string;
   date: string;
   positionId: string;
   owner: string;
+  chain: Chain;
   token0: {
     symbol: string;
     address: string;
