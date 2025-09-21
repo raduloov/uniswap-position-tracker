@@ -146,10 +146,11 @@ export class DiscordNotifier {
 
         // Calculate value change (24h)
         let valueChange = "";
+        let valueDiff = 0;
         if (prevPos) {
           const currentValue = pos.totalValueUSD ?? 0;
           const prevValue = prevPos.totalValueUSD ?? 0;
-          const valueDiff = currentValue - prevValue;
+          valueDiff = currentValue - prevValue;
           if (valueDiff !== 0) {
             const changePercent = prevValue > 0 ? ((currentValue - prevValue) / prevValue) * 100 : 0;
             valueChange = ` (${valueDiff >= 0 ? "+" : ""}$${valueDiff.toFixed(2)}, ${
@@ -191,7 +192,7 @@ export class DiscordNotifier {
           `**Status:** ${rangeStatus}`,
           `**P/L:** ${positionPnL}`,
           `**Range:** ${priceRange}`,
-          `**Value:** ${totalPnL >= 0 ? "📈" : "📉"} ${formatCurrency(pos.totalValueUSD ?? 0)}${valueChange}`,
+          `**Value:** ${valueDiff >= 0 ? "📈" : "📉"} ${formatCurrency(pos.totalValueUSD ?? 0)}${valueChange}`,
           `**Uncollected Fees:** ${formatCurrency(pos.uncollectedFees.totalUSD ?? 0)}${feeChange}`
         ].join("\n");
 
