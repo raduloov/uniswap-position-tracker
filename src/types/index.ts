@@ -2,16 +2,20 @@ export interface GraphQLPosition {
   id: string;
   owner: string;
   liquidity: string;
-  tickLower: {
-    tickIdx: string;
-    feeGrowthOutside0X128: string;
-    feeGrowthOutside1X128: string;
-  };
-  tickUpper: {
-    tickIdx: string;
-    feeGrowthOutside0X128: string;
-    feeGrowthOutside1X128: string;
-  };
+  tickLower:
+    | string
+    | {
+        tickIdx: string;
+        feeGrowthOutside0X128: string;
+        feeGrowthOutside1X128: string;
+      };
+  tickUpper:
+    | string
+    | {
+        tickIdx: string;
+        feeGrowthOutside0X128: string;
+        feeGrowthOutside1X128: string;
+      };
   token0: {
     id: string;
     symbol: string;
