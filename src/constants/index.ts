@@ -1,6 +1,8 @@
 export const DEFAULT_REPORT_PATH = "./docs/index.html";
 export const DEFAULT_DATA_PATH = "./data/positions.json";
 
+export const ARBITRUM_RPC_URL = "https://arb1.arbitrum.io/rpc";
+
 export const GRAPH_CONSTANTS = {
   ENDPOINTS: {
     ETHEREUM: {
@@ -61,6 +63,9 @@ export const UNISWAP_CONSTANTS = {
     BASE_RATIO: BigInt("0x100000000000000000000000000000000")
   }
 } as const;
+
+// Function signature for ticks(int24) - keccak256("ticks(int24)")
+export const ARBITRUM_TICKS_FUNCTION_SELECTOR = "0xf30dba93";
 
 export const STABLECOIN_SYMBOLS = ["USDT", "USDC", "DAI", "BUSD", "TUSD", "USDP", "GUSD"] as const;
 

@@ -61,3 +61,18 @@ export const getSqrtPriceX96FromTick = (tick: number): bigint => {
   // Shift right by 32 to get sqrtPriceX96
   return ratio >> UNISWAP_CONSTANTS.MATH.Q32;
 };
+
+// Convert number to padded hex (32 bytes)
+export const toHex32 = (num: number): string => {
+  // Convert to hex and pad to 64 characters (32 bytes)
+  const hex = num < 0 ? (BigInt(2) ** BigInt(256) + BigInt(num)).toString(16) : num.toString(16);
+  return hex.padStart(64, "0");
+};
+
+// Decode uint256 from hex string
+export const decodeUint256 = (hex: string): string => {
+  // Remove 0x prefix if present
+  const cleanHex = hex.startsWith("0x") ? hex.slice(2) : hex;
+  // Convert to BigInt and then to string
+  return BigInt("0x" + cleanHex).toString();
+};

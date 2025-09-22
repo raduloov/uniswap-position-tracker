@@ -12,9 +12,9 @@ class UniswapClient {
 
   constructor(chain: Chain) {
     this.chain = chain;
-    // Initialize Arbitrum fee fetcher for Arbitrum chain
-    // We'll use it as a fallback if Zerion doesn't work
     if (chain === Chain.ARBITRUM) {
+      // The Graph on Arbitrum does not provide full tick data needed for fee calculations
+      // So we need to fetch tick data directly from the Arbitrum RPC
       this.arbitrumFeeFetcher = new ArbitrumFeeFetcher();
     }
   }
@@ -135,19 +135,15 @@ class UniswapClient {
 
     // Handle fee data fetching based on chain
     const isArbitrum = chain === Chain.ARBITRUM;
-    
+
     let tickLowerFeeGrowth0 = "0";
     let tickLowerFeeGrowth1 = "0";
     let tickUpperFeeGrowth0 = "0";
     let tickUpperFeeGrowth1 = "0";
-    
+
     if (isArbitrum && this.arbitrumFeeFetcher) {
       // For Arbitrum without Zerion, fetch tick data via RPC
-      const tickData = await this.arbitrumFeeFetcher.fetchTickData(
-        pos.pool.id,
-        tickLower,
-        tickUpper
-      );
+      const tickData = await this.arbitrumFeeFetcher.fetchTickData(pos.pool.id, tickLower, tickUpper);
       tickLowerFeeGrowth0 = tickData.tickLower.feeGrowthOutside0X128;
       tickLowerFeeGrowth1 = tickData.tickLower.feeGrowthOutside1X128;
       tickUpperFeeGrowth0 = tickData.tickUpper.feeGrowthOutside0X128;
@@ -161,7 +157,7 @@ class UniswapClient {
       tickUpperFeeGrowth0 = tickUpperData?.feeGrowthOutside0X128 || "0";
       tickUpperFeeGrowth1 = tickUpperData?.feeGrowthOutside1X128 || "0";
     }
-    
+
     // Calculate fees if we have the data
 
     if (tickLowerFeeGrowth0 !== "0" || tickUpperFeeGrowth0 !== "0") {

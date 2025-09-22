@@ -147,8 +147,10 @@ This is a TypeScript application that automatically tracks Uniswap V3 liquidity 
 ### Fee Calculations
 
 - Uses Uniswap V3's fee growth tracking mechanism
-- Requires `feeGrowthGlobal0X128`, `feeGrowthOutside0X128`, etc. from Graph
 - Formula: `uncollectedFees = liquidity * (feeGrowthInside - feeGrowthInside0LastX128) / 2^128`
+- **Ethereum**: The Graph subgraph provides complete tick data including `feeGrowthOutside0X128` and `feeGrowthOutside1X128` fields directly in the GraphQL response - single API call gets everything
+- **Arbitrum**: The Graph subgraph doesn't include fee growth data in tick objects, so the app makes additional RPC calls to `https://arb1.arbitrum.io/rpc` to fetch tick data directly from the Uniswap pool contract using `eth_call` with the `ticks()` function
+- The Ethereum approach is more efficient (fewer network calls, lower latency) while Arbitrum requires 2 extra RPC calls per position as a workaround
 
 ### Price Range Display
 
