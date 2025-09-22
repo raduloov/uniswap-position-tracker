@@ -264,10 +264,12 @@ The app saves position data in JSON format with:
 ## Multi-Chain Implementation
 
 ### Supported Chains
+
 - **Ethereum Mainnet**: Primary chain support
 - **Arbitrum One**: Layer 2 support for lower fees and faster transactions
 
 ### How It Works
+
 1. Creates separate `UniswapClient` instances for each chain
 2. Fetches positions from both chains in parallel using `Promise.all`
 3. Combines results and displays chain breakdown in console
@@ -275,6 +277,7 @@ The app saves position data in JSON format with:
 5. HTML reports show chain badges with appropriate logos
 
 ### Console Output
+
 ```
 Found X active position(s)
   - Ethereum: Y position(s)
@@ -419,4 +422,5 @@ uniswap-position-tracker/
   - Local runs require either WALLET_ADDRESS or POSITION_ID
   - GitHub Actions environment automatically skips validation
   - Process exits with code 1 on errors for proper CI/CD failure detection
+- **IMPORTANT**: Use `npm run track-local:once` for development
 - **IMPORTANT**: Always run `npm run typecheck` after making code changes to ensure type safety

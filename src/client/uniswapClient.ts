@@ -4,12 +4,19 @@ import { Chain, GraphQLPosition, PositionData } from "../types";
 import { UNISWAP_CONSTANTS, STABLECOIN_SYMBOLS } from "../constants";
 import { getGraphEndpoint } from "../utils";
 import { buildPositionByIdQuery, buildPositionsByOwnerQuery } from "../schemas";
+import { ArbitrumFeeFetcher } from "../services/arbitrumFeeFetcher";
 
 class UniswapClient {
   private chain: Chain;
+  private arbitrumFeeFetcher: ArbitrumFeeFetcher | null = null;
 
   constructor(chain: Chain) {
     this.chain = chain;
+    // Initialize Arbitrum fee fetcher for Arbitrum chain
+    // We'll use it as a fallback if Zerion doesn't work
+    if (chain === Chain.ARBITRUM) {
+      this.arbitrumFeeFetcher = new ArbitrumFeeFetcher();
+    }
   }
 
   async getPositions(walletAddress: string, positionId?: string): Promise<PositionData[]> {
@@ -43,13 +50,13 @@ class UniswapClient {
         return [];
       }
 
-      return positions.map(pos => this.transformPosition(pos, this.chain));
+      return Promise.all(positions.map(pos => this.transformPosition(pos, this.chain)));
     } catch (error: any) {
       return [];
     }
   }
 
-  private transformPosition(pos: GraphQLPosition, chain: Chain): PositionData {
+  private async transformPosition(pos: GraphQLPosition, chain: Chain): Promise<PositionData> {
     // Get decimals
     const decimals0 = parseInt(pos.token0.decimals);
     const decimals1 = parseInt(pos.token1.decimals);
@@ -126,17 +133,38 @@ class UniswapClient {
       pricePerToken1 = 1;
     }
 
-    // For Arbitrum, we don't have tick fee growth data, so we can't calculate uncollected fees accurately
-    // We'll use a simplified approach or set to 0
+    // Handle fee data fetching based on chain
     const isArbitrum = chain === Chain.ARBITRUM;
+    
+    let tickLowerFeeGrowth0 = "0";
+    let tickLowerFeeGrowth1 = "0";
+    let tickUpperFeeGrowth0 = "0";
+    let tickUpperFeeGrowth1 = "0";
+    
+    if (isArbitrum && this.arbitrumFeeFetcher) {
+      // For Arbitrum without Zerion, fetch tick data via RPC
+      const tickData = await this.arbitrumFeeFetcher.fetchTickData(
+        pos.pool.id,
+        tickLower,
+        tickUpper
+      );
+      tickLowerFeeGrowth0 = tickData.tickLower.feeGrowthOutside0X128;
+      tickLowerFeeGrowth1 = tickData.tickLower.feeGrowthOutside1X128;
+      tickUpperFeeGrowth0 = tickData.tickUpper.feeGrowthOutside0X128;
+      tickUpperFeeGrowth1 = tickData.tickUpper.feeGrowthOutside1X128;
+    } else if (!isArbitrum) {
+      // Ethereum has full tick data with fee growth inline
+      const tickLowerData = typeof pos.tickLower === "string" ? null : pos.tickLower;
+      const tickUpperData = typeof pos.tickUpper === "string" ? null : pos.tickUpper;
+      tickLowerFeeGrowth0 = tickLowerData?.feeGrowthOutside0X128 || "0";
+      tickLowerFeeGrowth1 = tickLowerData?.feeGrowthOutside1X128 || "0";
+      tickUpperFeeGrowth0 = tickUpperData?.feeGrowthOutside0X128 || "0";
+      tickUpperFeeGrowth1 = tickUpperData?.feeGrowthOutside1X128 || "0";
+    }
+    
+    // Calculate fees if we have the data
 
-    if (!isArbitrum) {
-      // Ethereum has full tick data with fee growth
-      const tickLowerFeeGrowth0 = typeof pos.tickLower === "string" ? "0" : pos.tickLower.feeGrowthOutside0X128 || "0";
-      const tickLowerFeeGrowth1 = typeof pos.tickLower === "string" ? "0" : pos.tickLower.feeGrowthOutside1X128 || "0";
-      const tickUpperFeeGrowth0 = typeof pos.tickUpper === "string" ? "0" : pos.tickUpper.feeGrowthOutside0X128 || "0";
-      const tickUpperFeeGrowth1 = typeof pos.tickUpper === "string" ? "0" : pos.tickUpper.feeGrowthOutside1X128 || "0";
-
+    if (tickLowerFeeGrowth0 !== "0" || tickUpperFeeGrowth0 !== "0") {
       const feeGrowthInside0 = this.calculateFeeGrowthInside(
         BigInt(pos.pool.feeGrowthGlobal0X128 || "0"),
         BigInt(tickLowerFeeGrowth0),
@@ -170,9 +198,7 @@ class UniswapClient {
       uncollectedFees0 = Number(uncollectedFees0Big) / Math.pow(10, decimals0);
       uncollectedFees1 = Number(uncollectedFees1Big) / Math.pow(10, decimals1);
     } else {
-      // For Arbitrum, we'll use a simplified estimate or default to 0
-      // Since the actual fees are $0.219 as you mentioned, we'll default to 0
-      // until we can query the tick entities separately for accurate calculation
+      // No fee data available (Arbitrum with Zerion will handle this separately)
       uncollectedFees0 = 0;
       uncollectedFees1 = 0;
     }
