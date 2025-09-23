@@ -221,8 +221,7 @@ ${generateStyles()}
                             </div>
                         </div>
                     </div>
-                </div>
-                <div>
+                    <div>
                         <div class="position-range">Range: ${priceRange}</div>
                         <div class="position-id">Position #${positionId} • <span class="position-age">${
       positionAge.text
