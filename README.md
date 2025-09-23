@@ -1,13 +1,13 @@
 # Uniswap Position Tracker
 
-Automated tracking system for Uniswap V3 liquidity positions with historical data logging, web reporting, and Discord notifications.
+Automated tracking system for Uniswap V3 liquidity positions with historical data logging, web reporting, Discord and Telegram notifications.
 
 ## Features
 
 - 📊 **Multi-chain Support**: Tracks positions on Ethereum and Arbitrum
 - 💰 **Comprehensive Analytics**: Calculates USD values, uncollected fees, and P/L tracking
 - 📈 **Price Monitoring**: Shows real-time price changes with percentage movements
-- 🔔 **Discord Notifications**: Real-time updates with portfolio summaries and alerts
+- 🔔 **Discord & Telegram Notifications**: Real-time updates with portfolio summaries and alerts
 - 🕐 **Automated Tracking**: Daily snapshots via cron scheduler
 - 🌐 **Web Reports**: HTML reports with historical data visualization
 - ☁️ **Cloud Storage**: Optional Supabase integration for data persistence
@@ -20,7 +20,7 @@ Automated tracking system for Uniswap V3 liquidity positions with historical dat
 - Node.js 20+
 - Uniswap V3 position ID or wallet address
 - (Optional) Graph API key from [The Graph](https://thegraph.com/studio/apikeys/)
-- (Optional) Discord webhook for notifications
+- (Optional) Discord webhook and/or Telegram bot for notifications
 
 ### Installation
 
@@ -50,6 +50,10 @@ GRAPH_API_KEY=your-key     # For better reliability (recommended)
 
 # Optional - Discord Integration
 DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+
+# Optional - Telegram Integration
+TELEGRAM_BOT_TOKEN=your-bot-token
+TELEGRAM_CHAT_ID=your-chat-id
 
 # Optional - Supabase Cloud Storage
 SUPABASE_URL=https://xxx.supabase.co
@@ -85,10 +89,15 @@ npm run report-local  # Uses local file instead of Supabase
 # Send Discord notification
 npm run discord
 
+# Send Telegram notification
+npm run telegram
+npm run telegram:local  # Uses local file instead of Supabase
+
 # Production commands (uses compiled JS)
 npm run prod:track:once
 npm run prod:report
 npm run prod:discord
+npm run prod:telegram
 ```
 
 ## GitHub Actions Deployment
@@ -102,7 +111,7 @@ The repository includes automated workflows:
 - **Actions**:
   - Tracks positions from both chains
   - Saves to Supabase
-  - Sends Discord notifications
+  - Sends Discord/Telegram notifications (if configured)
   - Generates HTML report
   - Deploys to GitHub Pages
 
@@ -121,8 +130,29 @@ The repository includes automated workflows:
    - `GRAPH_API_KEY` (optional but recommended)
    - `SUPABASE_URL` and `SUPABASE_ANON_KEY`
    - `DISCORD_WEBHOOK_URL` (optional)
+   - `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` (optional)
 2. Enable GitHub Pages in repository settings (Source: GitHub Actions)
 3. Access your live report at: `https://[username].github.io/uniswap-position-tracker/`
+
+## Notifications Setup
+
+### Discord Webhook
+
+1. Create a webhook in your Discord server
+2. Copy the webhook URL
+3. Add to `.env`: `DISCORD_WEBHOOK_URL=your-webhook-url`
+
+### Telegram Bot
+
+1. Create a bot via [@BotFather](https://t.me/botfather)
+2. Get your bot token from BotFather
+3. Get your chat ID:
+   - Send a message to your bot
+   - Visit `https://api.telegram.org/bot<YourBotToken>/getUpdates`
+   - Find your chat ID in the response
+4. Add to `.env`:
+   - `TELEGRAM_BOT_TOKEN=your-bot-token`
+   - `TELEGRAM_CHAT_ID=your-chat-id`
 
 ## Multi-Chain Support
 
@@ -139,6 +169,7 @@ Each position is tracked with chain-specific data and displayed with appropriate
 ├── src/
 │   ├── index.ts                      # Main entry point
 │   ├── notifyDiscord.ts             # Discord notification script
+│   ├── notifyTelegram.ts            # Telegram notification script
 │   ├── client/
 │   │   ├── uniswapPositionTracker.ts # Main orchestration
 │   │   └── uniswapClient.ts         # Graph API & calculations
@@ -148,7 +179,8 @@ Each position is tracked with chain-specific data and displayed with appropriate
 │   ├── services/
 │   │   ├── scheduler.ts             # Cron scheduling
 │   │   ├── htmlGenerator.ts         # HTML report generation
-│   │   └── discordNotifier.ts       # Discord integration
+│   │   ├── discordNotifier.ts       # Discord integration
+│   │   └── telegramNotifier.ts      # Telegram integration
 │   ├── config/
 │   │   └── index.ts                 # Configuration management
 │   ├── constants/

@@ -16,6 +16,8 @@
     "prod:report": "NODE_NO_WARNINGS=1 node dist/index.js --report",
     "discord": "NODE_NO_WARNINGS=1 tsx src/notifyDiscord.ts",
     "prod:discord": "NODE_NO_WARNINGS=1 node dist/notifyDiscord.js",
+    "telegram": "NODE_NO_WARNINGS=1 tsx src/notifyTelegram.ts",
+    "prod:telegram": "NODE_NO_WARNINGS=1 node dist/notifyTelegram.js",
     "typecheck": "tsc --noEmit",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

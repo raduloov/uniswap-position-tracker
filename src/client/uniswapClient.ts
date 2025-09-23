@@ -19,7 +19,7 @@ class UniswapClient {
     }
   }
 
-  async getPositions(walletAddress: string, positionId?: string): Promise<PositionData[]> {
+  async getPositions(walletAddress: string, positionId?: string, timestamp?: string): Promise<PositionData[]> {
     try {
       const chainParam = this.chain;
       const query = positionId
@@ -50,13 +50,13 @@ class UniswapClient {
         return [];
       }
 
-      return Promise.all(positions.map(pos => this.transformPosition(pos, this.chain)));
+      return Promise.all(positions.map(pos => this.transformPosition(pos, this.chain, timestamp)));
     } catch (error: any) {
       return [];
     }
   }
 
-  private async transformPosition(pos: GraphQLPosition, chain: Chain): Promise<PositionData> {
+  private async transformPosition(pos: GraphQLPosition, chain: Chain, timestamp?: string): Promise<PositionData> {
     // Get decimals
     const decimals0 = parseInt(pos.token0.decimals);
     const decimals1 = parseInt(pos.token1.decimals);
@@ -249,9 +249,12 @@ class UniswapClient {
       }
     }
 
+    const now = timestamp || new Date().toISOString();
+    const dateObj = new Date(now);
+    
     return {
-      timestamp: new Date().toISOString(),
-      date: new Date().toLocaleDateString(),
+      timestamp: now,
+      date: dateObj.toLocaleDateString(),
       positionId: pos.id,
       owner: pos.owner,
       chain,

@@ -33,10 +33,13 @@ class UniswapPositionTracker {
       console.log(`Wallet: ${config.walletAddress}`);
       console.log("=".repeat(50));
 
-      // Fetch positions from both chains
+      // Create a shared timestamp for all positions in this batch
+      const batchTimestamp = new Date().toISOString();
+      
+      // Fetch positions from both chains with the same timestamp
       const [ethereumPositions, arbitrumPositions] = await Promise.all([
-        this.ethereumClient.getPositions(config.walletAddress, config.positionId),
-        this.arbitrumClient.getPositions(config.walletAddress, config.positionId)
+        this.ethereumClient.getPositions(config.walletAddress, config.positionId, batchTimestamp),
+        this.arbitrumClient.getPositions(config.walletAddress, config.positionId, batchTimestamp)
       ]);
 
       const positions = [...ethereumPositions, ...arbitrumPositions];
