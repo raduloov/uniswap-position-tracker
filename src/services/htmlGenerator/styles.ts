@@ -73,21 +73,14 @@ export const generateStyles = (): string => {
             width: 100%;
             margin-bottom: 6px;
         }
-        .mock-token-logo {
-            width: 52px;
-            height: 52px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .token-pair-logo {
+            width: 72px;
+            height: 72px;
             flex-shrink: 0;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
         }
-        .mock-token-logo span {
-            color: white;
-            font-weight: bold;
-            font-size: 16px;
+        .token-pair-logo svg {
+            width: 100%;
+            height: 100%;
         }
         .position-content {
             flex: 1;
@@ -98,7 +91,7 @@ export const generateStyles = (): string => {
             gap: 12px;
         }
         .pair-name {
-            font-size: 1.2em;
+            font-size: 1.6em;
             font-weight: 600;
             color: ${COLORS.TEXT.PRIMARY};
         }
@@ -106,13 +99,14 @@ export const generateStyles = (): string => {
             display: flex;
             align-items: center;
             gap: 8px;
+            margin-top: 8px;
         }
         .protocol-badge {
             background: ${COLORS.BADGE.DEFAULT_BG};
             color: ${COLORS.BADGE.DEFAULT_TEXT};
             padding: 3px 8px;
             border-radius: 4px;
-            font-size: 0.75em;
+            font-size: 0.9em;
             font-weight: 600;
         }
         .fee-badge {
@@ -120,14 +114,8 @@ export const generateStyles = (): string => {
             color: ${COLORS.BADGE.DEFAULT_TEXT};
             padding: 3px 8px;
             border-radius: 4px;
-            font-size: 0.75em;
+            font-size: 0.9em;
             font-weight: 600;
-        }
-        .chain-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-top: 4px;
         }
         .chain-badge {
             display: inline-flex;
@@ -135,22 +123,22 @@ export const generateStyles = (): string => {
             gap: 4px;
             padding: 2px 6px;
             border-radius: 4px;
-            font-size: 0.7em;
+            font-size: 0.9em;
             font-weight: 500;
         }
         .chain-badge.arbitrum {
-            background-color: #f0f9ff;
-            color: #213147;
-            border: 1px solid #21314720;
+            background-color: ${COLORS.CHAIN.ARBITRUM.BG};
+            color: ${COLORS.CHAIN.ARBITRUM.TEXT};
+            border: 1px solid ${COLORS.CHAIN.ARBITRUM.BORDER};
         }
         .chain-badge.ethereum {
-            background-color: #f5f5ff;
-            color: #627EEA;
-            border: 1px solid #627EEA20;
+            background-color: ${COLORS.CHAIN.ETHEREUM.BG};
+            color: ${COLORS.CHAIN.ETHEREUM.TEXT};
+            border: 1px solid ${COLORS.CHAIN.ETHEREUM.BORDER};
         }
         .chain-badge img {
-            width: 12px;
-            height: 12px;
+            width: 16px;
+            height: 16px;
         }
         .position-range {
             font-weight: 500;
@@ -411,9 +399,6 @@ export const generateStyles = (): string => {
             .position-title {
                 flex-wrap: wrap;
                 gap: 6px;
-            }
-            .pair-name {
-                font-size: 1.3em;
             }
             .position-id {
                 font-size: 0.85em;

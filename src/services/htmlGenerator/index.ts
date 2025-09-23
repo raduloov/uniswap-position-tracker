@@ -4,6 +4,7 @@ import { SupabaseStorage } from "../../storage/supabaseStorage";
 import { TIMEZONE } from "../../constants";
 import { PositionData } from "../../types";
 import { generateStyles } from "./styles";
+import { generateTokenPairSVG, getTokenIcon } from "../../utils/tokenPairLogo";
 import {
   calculateFeeDifference,
   calculateTotalValueDifference,
@@ -158,6 +159,9 @@ ${generateStyles()}
     if (!latestPosition) return "";
 
     const poolName = `${latestPosition.token0.symbol} / ${latestPosition.token1.symbol}`;
+    const token0Icon = getTokenIcon(latestPosition.token0.symbol);
+    const token1Icon = getTokenIcon(latestPosition.token1.symbol);
+    const tokenPairSVG = generateTokenPairSVG(token0Icon, token1Icon, positionId);
     const feePercent = (latestPosition.fee / 10000).toString();
     const chainName = latestPosition.chain
       ? latestPosition.chain.toString().charAt(0).toUpperCase() + latestPosition.chain.toString().slice(1)
@@ -200,18 +204,16 @@ ${generateStyles()}
             <div class="position-header">
                 <div>
                     <div class="position-top-row">
-                        <div class="mock-token-logo">
-                            <span>${poolName.charAt(0)}</span>
+                        <div class="token-pair-logo">
+                            ${tokenPairSVG}
                         </div>
                         <div class="position-content">
                             <div class="position-title-row">
                                 <span class="pair-name">${poolName}</span>
-                                <div class="badge-group">
-                                    <span class="protocol-badge">v3</span>
-                                    <span class="fee-badge">${feePercent}%</span>
-                                </div>
                             </div>
-                            <div class="chain-row">
+                            <div class="badge-group">
+                                <span class="protocol-badge">v3</span>
+                                <span class="fee-badge">${feePercent}%</span>
                                 <span class="chain-badge ${chainClass}">
                                     <img src="assets/${chainClass}.svg" alt="${chainName}" />
                                     ${chainName}
@@ -219,7 +221,8 @@ ${generateStyles()}
                             </div>
                         </div>
                     </div>
-                    <div>
+                </div>
+                <div>
                         <div class="position-range">Range: ${priceRange}</div>
                         <div class="position-id">Position #${positionId} • <span class="position-age">${
       positionAge.text

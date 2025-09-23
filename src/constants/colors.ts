@@ -38,6 +38,20 @@ export const COLORS = {
     OUT_RANGE_BG: "#f8d7da",
     OUT_RANGE_TEXT: "#721c24",
   },
+  
+  // Chain-specific colors
+  CHAIN: {
+    ARBITRUM: {
+      BG: "#f0f9ff",
+      TEXT: "#213147",
+      BORDER: "#21314720",
+    },
+    ETHEREUM: {
+      BG: "#f5f5ff",
+      TEXT: "#627EEA",
+      BORDER: "#627EEA20",
+    },
+  },
 
   // Border colors
   BORDER: {
