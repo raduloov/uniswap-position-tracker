@@ -42,9 +42,18 @@ export const generateStyles = (): string => {
         }
         .dashboard-glass {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(6, 1fr);
             gap: 20px;
             margin-bottom: 30px;
+        }
+        .dashboard-glass .glass-card:nth-child(-n+3) {
+            grid-column: span 2;
+        }
+        .dashboard-glass .glass-card:nth-child(4) {
+            grid-column: span 3;
+        }
+        .dashboard-glass .glass-card:nth-child(5) {
+            grid-column: span 3;
         }
         .glass-card {
             position: relative;
@@ -506,6 +515,15 @@ export const generateStyles = (): string => {
                 grid-template-columns: 1fr 1fr;
                 gap: 12px;
                 margin-bottom: 20px;
+            }
+            .dashboard-glass .glass-card:nth-child(-n+3) {
+                grid-column: span 1;
+            }
+            .dashboard-glass .glass-card:nth-child(4) {
+                grid-column: span 1;
+            }
+            .dashboard-glass .glass-card:nth-child(5) {
+                grid-column: span 2;
             }
             .glass-card {
                 padding: 16px 12px;
