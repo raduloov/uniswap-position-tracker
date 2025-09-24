@@ -37,9 +37,9 @@ export class TelegramNotifier {
 
     // Total P/L
     const pnlEmoji = totalPnL >= 0 ? "📈" : "📉";
-    message += `${pnlEmoji} <b>Total P/L:</b> ${formatCurrency(totalPnL, { showSign: true })}`;
+    message += `🤑 <b>Total P/L:</b> ${formatCurrency(totalPnL, { showSign: true })}`;
     if (totalPnLPercentage !== 0) {
-      message += ` (${formatPercentage(totalPnLPercentage, { showSign: true })})`;
+      message += ` ${pnlEmoji} <i>(${formatPercentage(totalPnLPercentage, { showSign: true })})</i>`;
     }
     message += `\n`;
 
@@ -60,10 +60,22 @@ export class TelegramNotifier {
         portfolioMetrics.ethPrice24hChangePercentage !== undefined
       ) {
         const emoji = portfolioMetrics.ethPrice24hChangePercentage >= 0 ? "📈" : "📉";
-        message += ` ${emoji} ${formatPercentage(portfolioMetrics.ethPrice24hChangePercentage, { showSign: true })}`;
+        message += ` ${emoji} <i>(${formatPercentage(portfolioMetrics.ethPrice24hChangePercentage, {
+          showSign: true
+        })})</i>`;
       }
       message += `\n`;
     }
+
+    // Total Value with percentage change from initial investment
+    message += `💼 <b>Total Value:</b> ${formatCurrency(portfolioMetrics.totalValueUSD)}`;
+    if (portfolioMetrics.dashboard.totalValueChange !== 0) {
+      const changeEmoji = portfolioMetrics.dashboard.totalValueChange >= 0 ? "📈" : "📉";
+      message += ` ${changeEmoji} <i>(${formatPercentage(portfolioMetrics.dashboard.totalValueChange, {
+        showSign: true
+      })})</i>`;
+    }
+    message += `\n`;
 
     // Active positions section
     const sortedPositions = positions
@@ -97,9 +109,9 @@ export class TelegramNotifier {
           const pnlEmoji = posMetrics.totalPnL >= 0 ? "📈" : "📉";
           const sign = posMetrics.totalPnL >= 0 ? "+" : "-";
           const percentSign = posMetrics.totalPnLPercentage >= 0 ? "+" : "-";
-          positionPnL = `${pnlEmoji} ${sign}$${Math.abs(posMetrics.totalPnL).toFixed(
+          positionPnL = `${sign}$${Math.abs(posMetrics.totalPnL).toFixed(
             2
-          )} (${percentSign}${formatPercentage(Math.abs(posMetrics.totalPnLPercentage))})`;
+          )} ${pnlEmoji} <i>(${percentSign}${formatPercentage(Math.abs(posMetrics.totalPnLPercentage))})</i>`;
         } else {
           const currentValue = pos.totalValueUSD ?? 0;
           positionPnL = `💰 $${currentValue.toFixed(2)}`;
