@@ -40,6 +40,99 @@ export const generateStyles = (): string => {
             margin-bottom: 30px;
             font-size: 1.1em;
         }
+        .dashboard-glass {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .glass-card {
+            position: relative;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 24px 20px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            border-radius: inherit;
+        }
+        .glass-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        .glass-card:hover::before {
+            opacity: 1;
+        }
+        .glass-icon {
+            font-size: 2.5em;
+            margin-bottom: 12px;
+            display: block;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
+        .glass-icon img {
+            width: 40px;
+            height: 40px;
+            filter: brightness(0) invert(1) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+        .glass-card .metric-label {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.85em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        .glass-card .metric-value {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.95);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            white-space: nowrap;
+        }
+        .glass-card .metric-value.positive {
+            color: #4ade80;
+            text-shadow: 0 0 20px rgba(74, 222, 128, 0.3);
+        }
+        .glass-card .metric-value.negative {
+            color: #f87171;
+            text-shadow: 0 0 20px rgba(248, 113, 113, 0.3);
+        }
+        .glass-card .metric-value.neutral {
+            color: #fbbf24;
+            text-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+        }
+        .metric-percentage {
+            font-size: 1em;
+            font-weight: 600;
+            margin-top: 4px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+        .metric-percentage.positive {
+            color: #4ade80;
+        }
+        .metric-percentage.negative {
+            color: #f87171;
+        }
+        .metric-percentage.neutral {
+            color: rgba(255, 255, 255, 0.7);
+        }
         .position-card {
             background: ${COLORS.BACKGROUND_SOLID.WHITE};
             border-radius: 12px;
@@ -408,6 +501,37 @@ export const generateStyles = (): string => {
             }
             th, td {
                 padding: 8px;
+            }
+            .dashboard-glass {
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+                margin-bottom: 20px;
+            }
+            .glass-card {
+                padding: 16px 12px;
+                border-radius: 16px;
+            }
+            .glass-icon {
+                font-size: 1.8em;
+                margin-bottom: 6px;
+            }
+            .glass-icon img {
+                width: 36px;
+                height: 36px;
+            }
+            .glass-card .metric-label {
+                font-size: 0.75em;
+                margin-bottom: 6px;
+            }
+            .glass-card .metric-value {
+                font-size: 1.3em;
+            }
+            .metric-percentage {
+                font-size: 0.85em;
+                margin-top: 2px;
+            }
+            .glass-card:hover {
+                transform: translateY(-2px) scale(1.01);
             }
         }`;
 };

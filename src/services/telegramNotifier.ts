@@ -7,7 +7,7 @@ import {
   calculatePriceChange,
   calculateProfitLoss
 } from "../utils/position";
-import { formatCurrency } from "../utils/formatting";
+import { formatCurrency, formatPercentage } from "../utils/formatting";
 import { buildPositionMap } from "../utils/positionHistory";
 
 export class TelegramNotifier {
@@ -60,7 +60,7 @@ export class TelegramNotifier {
     const pnlEmoji = totalPnL >= 0 ? "📈" : "📉";
     message += `${pnlEmoji} <b>Total P/L:</b> ${formatCurrency(totalPnL, { showSign: true })}`;
     if (totalPnLPercentage !== 0) {
-      message += ` (${totalPnLPercentage >= 0 ? "+" : ""}${totalPnLPercentage.toFixed(2)}%)`;
+      message += ` (${formatPercentage(totalPnLPercentage, { showSign: true })})`;
     }
     message += `\n`;
 
@@ -119,7 +119,7 @@ export class TelegramNotifier {
             const pnlEmoji = pnl.value >= 0 ? "📈" : "📉";
             positionPnL = `${pnlEmoji} ${pnl.value >= 0 ? "+" : ""}$${Math.abs(pnl.value).toFixed(2)} (${
               pnl.percentage >= 0 ? "+" : ""
-            }${pnl.percentage.toFixed(2)}%)`;
+            }${formatPercentage(Math.abs(pnl.percentage))})`;
           } else {
             const currentValue = pos.totalValueUSD ?? 0;
             positionPnL = `💰 $${currentValue.toFixed(2)}`;
@@ -149,7 +149,7 @@ export class TelegramNotifier {
           if (valueDiff !== 0) {
             const changePercent = prevValue > 0 ? ((currentValue - prevValue) / prevValue) * 100 : 0;
             const changeEmoji = valueDiff >= 0 ? "📈" : "📉";
-            valueChange = ` ${changeEmoji} <i>(${changePercent >= 0 ? "+" : ""}${changePercent.toFixed(2)}%)</i>`;
+            valueChange = ` ${changeEmoji} <i>(${formatPercentage(changePercent, { showSign: true })})</i>`;
           }
         }
 
@@ -203,7 +203,7 @@ export class TelegramNotifier {
     message += `<b>Position:</b> ${poolName} (${position.chain})\n`;
     message += `<b>Previous:</b> ${formatCurrency(previousValue)}\n`;
     message += `<b>Current:</b> ${formatCurrency(currentValue)}\n`;
-    message += `<b>Change:</b> ${changePercent >= 0 ? "+" : ""}${changePercent.toFixed(2)}% `;
+    message += `<b>Change:</b> ${formatPercentage(changePercent, { showSign: true })} `;
     message += `(${formatCurrency(changeAmount, { showSign: true })})\n`;
     message += `<b>Status:</b> ${isPositionInRange(position) ? "✅ In Range" : "❌ Out of Range"}\n`;
 

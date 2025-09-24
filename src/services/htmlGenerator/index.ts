@@ -19,6 +19,8 @@ import {
   calculateAverageDailyFees,
   calculateProfitLoss
 } from "../../utils/htmlGenerator";
+import { calculateDashboardMetrics, DashboardMetrics } from "../../utils/dashboard";
+import { formatPercentageWithClass } from "../../utils/formatting";
 
 export class HtmlGenerator {
   private htmlFilePath: string;
@@ -92,6 +94,11 @@ export class HtmlGenerator {
 
     // Group positions by positionId
     const positionGroups = this.groupPositionsByIds(allData);
+
+    // Calculate dashboard metrics
+    const dashboardMetrics = calculateDashboardMetrics(positionGroups);
+    const dashboardSection = this.buildDashboardSection(dashboardMetrics);
+
     const positionTables = Array.from(positionGroups.entries())
       // Sort position groups by most recent activity (newest first)
       .sort(([, positionsA], [, positionsB]) => {
@@ -122,7 +129,9 @@ ${generateStyles()}
             <h1>Uniswap Position Tracker</h1>
         </div>
         <div class="timestamp">Updated on ${formattedDateTime}</div>
-        
+
+        ${dashboardSection}
+
         ${positionTables}
         
         <div class="footer">
@@ -150,6 +159,59 @@ ${generateStyles()}
     });
 
     return groups;
+  }
+
+  private buildDashboardSection(metrics: DashboardMetrics): string {
+    const pnlClass = metrics.totalPnL > 0 ? 'positive' : metrics.totalPnL < 0 ? 'negative' : 'neutral';
+    const pnlSign = metrics.totalPnL >= 0 ? '+' : '-';
+
+    const fees24hClass = metrics.fees24h > 0 ? 'positive' : metrics.fees24h < 0 ? 'negative' : 'neutral';
+    const fees24hSign = metrics.fees24h >= 0 ? '+' : '-';
+
+    const pnlPercentage = formatPercentageWithClass(metrics.totalPnLChange);
+    const feesPercentage = formatPercentageWithClass(metrics.totalFeesChange);
+    const ethPercentage = formatPercentageWithClass(metrics.ethPriceChange);
+    const valuePercentage = formatPercentageWithClass(metrics.totalValueChange);
+
+    // Dynamic P&L emoji based on positive/negative
+    const pnlIcon = metrics.totalPnL > 0
+      ? '<img src="assets/arrow-trend-up-solid-full.svg" alt="Profit" />'
+      : metrics.totalPnL < 0
+      ? '<img src="assets/arrow-trend-down-solid-full.svg" alt="Loss" />'
+      : '<img src="assets/building-columns-solid-full.svg" alt="Neutral" />';
+
+    return `
+        <div class="dashboard-glass">
+            <div class="glass-card">
+                <div class="glass-icon">${pnlIcon}</div>
+                <div class="metric-label">Total P&L</div>
+                <div class="metric-value ${pnlClass}">${pnlSign}$${Math.abs(metrics.totalPnL).toFixed(2)}</div>
+                <div class="metric-percentage ${pnlPercentage.class}">${pnlPercentage.text}</div>
+            </div>
+            <div class="glass-card">
+                <div class="glass-icon"><img src="assets/sack-dollar-solid-full.svg" alt="Total Fees" /></div>
+                <div class="metric-label">Total Fees</div>
+                <div class="metric-value">$${metrics.totalFees.toFixed(2)}</div>
+                <div class="metric-percentage ${feesPercentage.class}">${feesPercentage.text}</div>
+            </div>
+            <div class="glass-card">
+                <div class="glass-icon"><img src="assets/bolt-solid-full.svg" alt="24h Fees" /></div>
+                <div class="metric-label">24h Fees</div>
+                <div class="metric-value ${fees24hClass}">${fees24hSign}$${Math.abs(metrics.fees24h).toFixed(2)}</div>
+            </div>
+            <div class="glass-card">
+                <div class="glass-icon"><img src="assets/ethereum.svg" alt="Ethereum" /></div>
+                <div class="metric-label">ETH Price</div>
+                <div class="metric-value">$${metrics.currentEthPrice.toFixed(2)}</div>
+                <div class="metric-percentage ${ethPercentage.class}">${ethPercentage.text}</div>
+            </div>
+            <div class="glass-card">
+                <div class="glass-icon"><img src="assets/building-columns-solid-full.svg" alt="Total Value" /></div>
+                <div class="metric-label">Total Value</div>
+                <div class="metric-value">$${metrics.totalValue.toFixed(2)}</div>
+                <div class="metric-percentage ${valuePercentage.class}">${valuePercentage.text}</div>
+            </div>
+        </div>`;
   }
 
   private buildPositionHistoryTable(positionId: string, positions: PositionData[]): string {
@@ -231,7 +293,7 @@ ${generateStyles()}
                 <div class="fees-indicators">
                     <div class="profit-loss-indicator ${profitLossClass}">
                         <span class="profit-loss-label ${profitLossClass}">P/L <span class="profit-loss-percent">(${profitLossPercentSign}${profitLoss.percentage.toFixed(
-      1
+      2
     )}%)</span></span>
                         <span class="profit-loss-value ${profitLossClass}">${profitLossSign}$${Math.abs(
       profitLoss.value

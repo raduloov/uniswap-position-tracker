@@ -1,4 +1,5 @@
 import { PositionData } from "../types";
+import { formatPercentage } from "./formatting";
 
 /**
  * Check if a position is in range
@@ -93,7 +94,7 @@ export function calculatePriceChange(
   const difference = currentPrice - previousPrice;
   const percentage = previousPrice > 0 ? ((currentPrice - previousPrice) / previousPrice) * 100 : 0;
   const emoji = percentage >= 0 ? "📈" : "📉";
-  const formatted = `${emoji} ${percentage >= 0 ? "+" : ""}${percentage.toFixed(2)}%`;
+  const formatted = `${emoji} ${formatPercentage(percentage, { showSign: true })}`;
 
   return {
     difference,
@@ -121,17 +122,20 @@ export function calculateProfitLoss(positions: PositionData[]): {
     return { value: 0, percentage: 0 };
   }
 
-  // Calculate total earned fees
-  const earnedFees = (latest.uncollectedFees?.totalUSD || 0) - (oldest.uncollectedFees?.totalUSD || 0);
-
   // Calculate value change
-  const valueChange = (latest.totalValueUSD || 0) - (oldest.totalValueUSD || 0);
-
-  // Total profit/loss = value change + earned fees
-  const totalProfitLoss = valueChange + earnedFees;
-
-  // Calculate percentage based on initial investment
+  const currentValue = latest.totalValueUSD || 0;
   const initialValue = oldest.totalValueUSD || 0;
+  const valueChange = currentValue - initialValue;
+
+  // Total fees earned is the current uncollected fees
+  // (assuming we started tracking when position was created and fees haven't been collected)
+  const totalFeesEarned = latest.uncollectedFees?.totalUSD || 0;
+
+  // Total profit/loss = value change + total fees earned
+  const totalProfitLoss = valueChange + totalFeesEarned;
+
+  // Calculate percentage based on initial investment (first position total value)
+  // P/L % = (Total P/L / Initial Value) * 100
   const percentage = initialValue > 0 ? (totalProfitLoss / initialValue) * 100 : 0;
 
   return { value: totalProfitLoss, percentage };

@@ -45,12 +45,25 @@ export function formatTableDate(timestamp: string, timezone: string): string {
  */
 export function formatPercentage(value: number, options?: { showSign?: boolean }): string {
   const formatted = value.toFixed(2);
-  
+
   if (options?.showSign && value >= 0) {
     return `+${formatted}%`;
   }
-  
+
   return `${formatted}%`;
+}
+
+/**
+ * Format percentage with CSS class for styling
+ */
+export function formatPercentageWithClass(value: number): { text: string; class: string } {
+  const sign = value >= 0 ? '+' : '-';
+  const absValue = Math.abs(value);
+  const className = value > 0 ? 'positive' : value < 0 ? 'negative' : 'neutral';
+  return {
+    text: value === 0 ? '0.00%' : `${sign}${absValue.toFixed(2)}%`,
+    class: className
+  };
 }
 
 // HTML-specific formatting functions
