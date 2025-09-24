@@ -2,9 +2,11 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { SupabaseStorage } from "../../storage/supabaseStorage";
 import { TIMEZONE } from "../../constants";
-import { PositionData } from "../../types";
+import { PortfolioMetrics, PositionData } from "../../types";
+
 import { generateStyles } from "./styles";
 import { generateTokenPairSVG, getTokenIcon } from "../../utils/tokenPairLogo";
+import { PositionMetricsCalculator } from "../positionMetricsCalculator";
 import {
   calculateFeeDifference,
   calculateTotalValueDifference,
@@ -14,12 +16,8 @@ import {
   formatPriceWithChange,
   isPositionInRange,
   formatStatusBadge,
-  calculatePositionAge,
-  formatTableDate,
-  calculateAverageDailyFees,
-  calculateProfitLoss
+  formatTableDate
 } from "../../utils/htmlGenerator";
-import { calculateDashboardMetrics, DashboardMetrics } from "../../utils/dashboard";
 import { formatPercentageWithClass } from "../../utils/formatting";
 
 export class HtmlGenerator {
@@ -95,9 +93,10 @@ export class HtmlGenerator {
     // Group positions by positionId
     const positionGroups = this.groupPositionsByIds(allData);
 
-    // Calculate dashboard metrics
-    const dashboardMetrics = calculateDashboardMetrics(positionGroups);
-    const dashboardSection = this.buildDashboardSection(dashboardMetrics);
+    // Calculate all metrics using centralized calculator
+    const metricsCalculator = new PositionMetricsCalculator();
+    const portfolioMetrics = metricsCalculator.calculatePortfolioMetrics(allData);
+    const dashboardSection = this.buildDashboardSection(portfolioMetrics.dashboard);
 
     const positionTables = Array.from(positionGroups.entries())
       // Sort position groups by most recent activity (newest first)
@@ -106,7 +105,7 @@ export class HtmlGenerator {
         const latestB = positionsB[0]?.timestamp || "";
         return new Date(latestB).getTime() - new Date(latestA).getTime();
       })
-      .map(([positionId, positions]) => this.buildPositionHistoryTable(positionId, positions))
+      .map(([positionId, positions]) => this.buildPositionHistoryTable(positionId, positions, portfolioMetrics))
       .join("\n");
 
     return `<!DOCTYPE html>
@@ -161,12 +160,12 @@ ${generateStyles()}
     return groups;
   }
 
-  private buildDashboardSection(metrics: DashboardMetrics): string {
-    const pnlClass = metrics.totalPnL > 0 ? 'positive' : metrics.totalPnL < 0 ? 'negative' : 'neutral';
-    const pnlSign = metrics.totalPnL >= 0 ? '+' : '-';
+  private buildDashboardSection(metrics: any): string {
+    const pnlClass = metrics.totalPnL > 0 ? "positive" : metrics.totalPnL < 0 ? "negative" : "neutral";
+    const pnlSign = metrics.totalPnL >= 0 ? "+" : "-";
 
-    const fees24hClass = metrics.fees24h > 0 ? 'positive' : metrics.fees24h < 0 ? 'negative' : 'neutral';
-    const fees24hSign = metrics.fees24h >= 0 ? '+' : '-';
+    const fees24hClass = metrics.fees24h > 0 ? "positive" : metrics.fees24h < 0 ? "negative" : "neutral";
+    const fees24hSign = metrics.fees24h >= 0 ? "+" : "-";
 
     const pnlPercentage = formatPercentageWithClass(metrics.totalPnLChange);
     const feesPercentage = formatPercentageWithClass(metrics.totalFeesChange);
@@ -174,11 +173,12 @@ ${generateStyles()}
     const valuePercentage = formatPercentageWithClass(metrics.totalValueChange);
 
     // Dynamic P&L emoji based on positive/negative
-    const pnlIcon = metrics.totalPnL > 0
-      ? '<img src="assets/arrow-trend-up-solid-full.svg" alt="Profit" />'
-      : metrics.totalPnL < 0
-      ? '<img src="assets/arrow-trend-down-solid-full.svg" alt="Loss" />'
-      : '<img src="assets/building-columns-solid-full.svg" alt="Neutral" />';
+    const pnlIcon =
+      metrics.totalPnL > 0
+        ? '<img src="assets/arrow-trend-up-solid-full.svg" alt="Profit" />'
+        : metrics.totalPnL < 0
+        ? '<img src="assets/arrow-trend-down-solid-full.svg" alt="Loss" />'
+        : '<img src="assets/building-columns-solid-full.svg" alt="Neutral" />';
 
     return `
         <div class="dashboard-glass">
@@ -214,7 +214,11 @@ ${generateStyles()}
         </div>`;
   }
 
-  private buildPositionHistoryTable(positionId: string, positions: PositionData[]): string {
+  private buildPositionHistoryTable(
+    positionId: string,
+    positions: PositionData[],
+    portfolioMetrics: PortfolioMetrics
+  ): string {
     if (positions.length === 0) return "";
 
     const latestPosition = positions[0];
@@ -234,20 +238,18 @@ ${generateStyles()}
         ? `$${latestPosition.priceRange.lower.toFixed(2)} - $${latestPosition.priceRange.upper.toFixed(2)}`
         : `${latestPosition.tickLower} - ${latestPosition.tickUpper}`;
 
-    // Calculate position age in days
-    const oldestPosition = positions[positions.length - 1];
-    const positionAge = oldestPosition
-      ? calculatePositionAge(oldestPosition.timestamp)
-      : { days: 0, text: "New position" };
+    // Get metrics for this position from the portfolio metrics
+    const positionMetrics = portfolioMetrics.positions.find(p => p.positionId === positionId);
 
-    // Calculate average daily fees
-    const averageDailyFees = calculateAverageDailyFees(positions);
-
-    // Get latest total fees
+    // Use metrics from centralized calculator
+    const positionAge = positionMetrics?.positionAge || { days: 0, text: "New position" };
+    const averageDailyFees = positionMetrics?.averageDailyFees || 0;
     const latestTotalFees = latestPosition.uncollectedFees?.totalUSD || 0;
 
-    // Calculate profit/loss
-    const profitLoss = calculateProfitLoss(positions);
+    // Use P/L from centralized calculator
+    const profitLoss = positionMetrics
+      ? { value: positionMetrics.totalPnL, percentage: positionMetrics.totalPnLPercentage }
+      : { value: 0, percentage: 0 };
     const profitLossClass = profitLoss.value > 0 ? "positive" : profitLoss.value < 0 ? "negative" : "neutral";
     const profitLossSign = profitLoss.value >= 0 ? "+" : "-";
     const profitLossPercentSign = profitLoss.percentage >= 0 ? "+" : "";

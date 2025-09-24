@@ -1,50 +1,29 @@
 import axios from "axios";
-import { PositionData } from "../types";
-import {
-  isPositionInRange,
-  formatFeeTier,
-  calculate24hFees,
-  calculatePriceChange,
-  calculateProfitLoss
-} from "../utils/position";
+import { PortfolioMetrics, PositionData } from "../types";
+
+import { isPositionInRange, formatFeeTier } from "../utils/position";
 import { formatCurrency, formatPercentage } from "../utils/formatting";
-import { buildPositionMap } from "../utils/positionHistory";
 
 export class TelegramNotifier {
   private botToken: string | undefined;
   private chatId: string | undefined;
   private enabled: boolean;
+  private testMode: boolean;
 
-  constructor(botToken?: string, chatId?: string) {
+  constructor(botToken?: string, chatId?: string, testMode: boolean = false) {
     this.botToken = botToken;
     this.chatId = chatId;
     this.enabled = Boolean(botToken && chatId);
+    this.testMode = testMode;
   }
 
-  async sendPositionUpdate(
-    positions: PositionData[],
-    summary: {
-      totalValueUSD: number;
-      totalFeesUSD: number;
-      inRangeCount: number;
-      outOfRangeCount: number;
-      profitLoss?: number;
-      profitLossPercentage?: number;
-    },
-    previousPositions?: PositionData[],
-    positionHistoryMap?: Map<string, PositionData[]>
-  ): Promise<void> {
-    if (!this.enabled || !this.botToken || !this.chatId) return;
+  async sendPositionUpdate(positions: PositionData[], portfolioMetrics: PortfolioMetrics): Promise<string | void> {
+    if (!this.testMode && (!this.enabled || !this.botToken || !this.chatId)) return;
 
-    // Calculate 24h fees
-    const total24hFees = calculate24hFees(positions, previousPositions);
-
-    // Create map of previous positions for comparison
-    const prevPosMap = previousPositions ? buildPositionMap(previousPositions) : new Map<string, PositionData>();
-
-    // Use P/L from summary (consistent with HTML report)
-    const totalPnL = summary.profitLoss ?? 0;
-    const totalPnLPercentage = summary.profitLossPercentage ?? 0;
+    // Use metrics from the centralized calculator
+    const total24hFees = portfolioMetrics.total24hFees;
+    const totalPnL = portfolioMetrics.totalPnL;
+    const totalPnLPercentage = portfolioMetrics.totalPnLPercentage;
 
     // Build message text using Telegram's HTML format
     let message = `<b>🦄 Uniswap Position Update</b>\n`;
@@ -68,18 +47,20 @@ export class TelegramNotifier {
     message += `💵 <b>24h Fees:</b> ${formatCurrency(total24hFees, { showSign: true })}\n`;
 
     // Total Fees
-    message += `💰 <b>Total Fees:</b> ${formatCurrency(summary.totalFeesUSD)}\n`;
+    message += `💰 <b>Total Fees:</b> ${formatCurrency(portfolioMetrics.totalFeesUSD)}\n`;
 
-    // Current ETH price if available
-    if (positions.length > 0 && positions[0]?.priceRange?.current) {
-      const price = positions[0].priceRange.current;
-      message += `🏷️ <b>ETH Price:</b> ${formatCurrency(price)}`;
+    // Current ETH price if available (use from portfolio metrics)
+    const ethPrice = portfolioMetrics.currentEthPrice || positions[0]?.priceRange?.current;
+    if (ethPrice) {
+      message += `🏷️ <b>ETH Price:</b> ${formatCurrency(ethPrice)}`;
 
-      // Calculate price change if we have previous data
-      if (previousPositions && previousPositions.length > 0 && previousPositions[0]?.priceRange?.current) {
-        const prevPrice = previousPositions[0].priceRange.current;
-        const priceChangeData = calculatePriceChange(price, prevPrice);
-        message += ` ${priceChangeData.formatted}`;
+      // Use ETH price change from portfolio metrics
+      if (
+        portfolioMetrics.ethPrice24hChangePercentage !== null &&
+        portfolioMetrics.ethPrice24hChangePercentage !== undefined
+      ) {
+        const emoji = portfolioMetrics.ethPrice24hChangePercentage >= 0 ? "📈" : "📉";
+        message += ` ${emoji} ${formatPercentage(portfolioMetrics.ethPrice24hChangePercentage, { showSign: true })}`;
       }
       message += `\n`;
     }
@@ -103,54 +84,42 @@ export class TelegramNotifier {
         const rangeStatus = inRange ? "✅" : "❌";
         const poolName = `${pos.token0.symbol}/${pos.token1.symbol}`;
 
-        // Get previous position for comparison (24h)
-        const prevPos = prevPosMap.get(pos.positionId);
-
         const priceRange = pos.priceRange
           ? `$${pos.priceRange.lower.toFixed(0)}-$${pos.priceRange.upper.toFixed(0)}`
           : `[${pos.tickLower}, ${pos.tickUpper}]`;
 
-        // Calculate position P/L
+        // Get position metrics from portfolio metrics
+        const posMetrics = portfolioMetrics.positions.find(p => p.positionId === pos.positionId);
+
+        // Calculate position P/L (use portfolio metrics)
         let positionPnL = "";
-        if (positionHistoryMap) {
-          const history = positionHistoryMap.get(pos.positionId);
-          if (history && history.length > 0) {
-            const pnl = calculateProfitLoss(history);
-            const pnlEmoji = pnl.value >= 0 ? "📈" : "📉";
-            positionPnL = `${pnlEmoji} ${pnl.value >= 0 ? "+" : ""}$${Math.abs(pnl.value).toFixed(2)} (${
-              pnl.percentage >= 0 ? "+" : ""
-            }${formatPercentage(Math.abs(pnl.percentage))})`;
-          } else {
-            const currentValue = pos.totalValueUSD ?? 0;
-            positionPnL = `💰 $${currentValue.toFixed(2)}`;
-          }
+        if (posMetrics && posMetrics.totalPnL !== 0) {
+          const pnlEmoji = posMetrics.totalPnL >= 0 ? "📈" : "📉";
+          const sign = posMetrics.totalPnL >= 0 ? "+" : "-";
+          const percentSign = posMetrics.totalPnLPercentage >= 0 ? "+" : "-";
+          positionPnL = `${pnlEmoji} ${sign}$${Math.abs(posMetrics.totalPnL).toFixed(
+            2
+          )} (${percentSign}${formatPercentage(Math.abs(posMetrics.totalPnLPercentage))})`;
         } else {
           const currentValue = pos.totalValueUSD ?? 0;
           positionPnL = `💰 $${currentValue.toFixed(2)}`;
         }
 
-        // Calculate 24h fee change
+        // Calculate 24h fee change (use portfolio metrics)
         let feeChange = "";
-        if (prevPos) {
-          const currentFees = pos.uncollectedFees.totalUSD ?? 0;
-          const prevFees = prevPos.uncollectedFees.totalUSD ?? 0;
-          const feeDiff = currentFees - prevFees;
-          if (feeDiff !== 0) {
-            feeChange = ` <i>(24h: ${feeDiff >= 0 ? "+" : ""}$${feeDiff.toFixed(2)})</i>`;
-          }
+        if (posMetrics && posMetrics.fees24hChange !== 0) {
+          feeChange = ` <i>(24h: ${posMetrics.fees24hChange >= 0 ? "+" : ""}$${posMetrics.fees24hChange.toFixed(
+            2
+          )})</i>`;
         }
 
-        // Calculate value change (24h)
+        // Calculate value change (24h) (use portfolio metrics)
         let valueChange = "";
-        if (prevPos) {
-          const currentValue = pos.totalValueUSD ?? 0;
-          const prevValue = prevPos.totalValueUSD ?? 0;
-          const valueDiff = currentValue - prevValue;
-          if (valueDiff !== 0) {
-            const changePercent = prevValue > 0 ? ((currentValue - prevValue) / prevValue) * 100 : 0;
-            const changeEmoji = valueDiff >= 0 ? "📈" : "📉";
-            valueChange = ` ${changeEmoji} <i>(${formatPercentage(changePercent, { showSign: true })})</i>`;
-          }
+        if (posMetrics && posMetrics.value24hChangePercentage !== 0) {
+          const changeEmoji = posMetrics.value24hChange >= 0 ? "📈" : "📉";
+          valueChange = ` ${changeEmoji} <i>(${formatPercentage(posMetrics.value24hChangePercentage, {
+            showSign: true
+          })})</i>`;
         }
 
         // Format fee tier
@@ -175,12 +144,17 @@ export class TelegramNotifier {
     message += `\n━━━━━━━━━━━━━━━━\n`;
     message += `📊 <a href="https://raduloov.github.io/uniswap-position-tracker/">View Full Report</a>`;
 
-    // Send the message
-    try {
-      await this.sendMessage(message);
-      console.log("✅ Telegram notification sent successfully");
-    } catch (error) {
-      console.error("❌ Failed to send Telegram notification:", error);
+    // Send the message or return it in test mode
+    if (this.testMode) {
+      // In test mode, return the formatted message
+      return message;
+    } else {
+      try {
+        await this.sendMessage(message);
+        console.log("✅ Telegram notification sent successfully");
+      } catch (error) {
+        console.error("❌ Failed to send Telegram notification:", error);
+      }
     }
   }
 
@@ -190,7 +164,7 @@ export class TelegramNotifier {
     changePercent: number,
     changeType: "value" | "fees"
   ): Promise<void> {
-    if (!this.enabled || !this.botToken || !this.chatId) return;
+    if (!this.testMode && (!this.enabled || !this.botToken || !this.chatId)) return;
 
     const isPositive = changePercent > 0;
     const emoji = isPositive ? "📈" : "📉";
@@ -207,10 +181,18 @@ export class TelegramNotifier {
     message += `(${formatCurrency(changeAmount, { showSign: true })})\n`;
     message += `<b>Status:</b> ${isPositionInRange(position) ? "✅ In Range" : "❌ Out of Range"}\n`;
 
-    try {
-      await this.sendMessage(message);
-    } catch (error) {
-      console.error("Failed to send significant change alert:", error);
+    if (this.testMode) {
+      console.log("\n" + "=".repeat(50));
+      console.log("SIGNIFICANT CHANGE ALERT (not sent):");
+      console.log("=".repeat(50));
+      console.log(message);
+      console.log("=".repeat(50));
+    } else {
+      try {
+        await this.sendMessage(message);
+      } catch (error) {
+        console.error("Failed to send significant change alert:", error);
+      }
     }
   }
 

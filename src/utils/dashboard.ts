@@ -1,17 +1,5 @@
-import { PositionData } from "../types";
+import { DashboardMetrics, PositionData } from "../types";
 import { calculateProfitLoss } from "./position";
-
-export interface DashboardMetrics {
-  totalPnL: number;
-  totalFees: number;
-  fees24h: number;
-  currentEthPrice: number;
-  totalValue: number;
-  totalFeesChange: number;
-  totalValueChange: number;
-  ethPriceChange: number;
-  totalPnLChange: number;
-}
 
 /**
  * Calculate dashboard metrics from position groups
@@ -103,12 +91,7 @@ export function calculateDashboardMetrics(positionGroups: Map<string, PositionDa
  */
 function isEthPool(position: PositionData): boolean {
   const symbols = [position.token0.symbol, position.token1.symbol];
-  const hasEth = symbols.some(symbol =>
-    symbol.toLowerCase().includes('weth') ||
-    symbol.toLowerCase().includes('eth')
-  );
-  const hasStablecoin = symbols.some(symbol =>
-    ['USDT', 'USDC', 'DAI', 'BUSD', 'FRAX'].includes(symbol.toUpperCase())
-  );
+  const hasEth = symbols.some(symbol => symbol.toLowerCase().includes("weth") || symbol.toLowerCase().includes("eth"));
+  const hasStablecoin = symbols.some(symbol => ["USDT", "USDC", "DAI", "BUSD", "FRAX"].includes(symbol.toUpperCase()));
   return hasEth && hasStablecoin;
 }

@@ -96,3 +96,55 @@ export interface PositionData {
     currency: string;
   };
 }
+
+export interface PositionMetrics {
+  positionId: string;
+  chain: string;
+  poolName: string;
+  feeTier: number;
+  inRange: boolean;
+  currentValue: number;
+  currentFees: number;
+  totalPnL: number;
+  totalPnLPercentage: number;
+  value24hChange: number;
+  value24hChangePercentage: number;
+  fees24hChange: number;
+  averageDailyFees: number;
+  positionAge: { days: number; text: string };
+  priceRange: {
+    lower: number;
+    upper: number;
+    current: number;
+  } | null;
+  currentPrice: number | null;
+  price24hChange: number | null;
+  price24hChangePercentage: number | null;
+}
+
+export interface DashboardMetrics {
+  totalPnL: number;
+  totalFees: number;
+  fees24h: number;
+  currentEthPrice: number;
+  totalValue: number;
+  totalFeesChange: number;
+  totalValueChange: number;
+  ethPriceChange: number;
+  totalPnLChange: number;
+}
+
+export interface PortfolioMetrics {
+  dashboard: DashboardMetrics;
+  totalValueUSD: number;
+  totalFeesUSD: number;
+  totalPnL: number;
+  totalPnLPercentage: number;
+  total24hFees: number;
+  inRangeCount: number;
+  outOfRangeCount: number;
+  currentEthPrice: number | null;
+  ethPrice24hChange: number | null;
+  ethPrice24hChangePercentage: number | null;
+  positions: PositionMetrics[];
+}

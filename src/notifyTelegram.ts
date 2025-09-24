@@ -8,17 +8,24 @@ import {
   getLatestPositions,
   getPreviousPositions
 } from "./utils/positionHistory";
-import { calculateProfitLoss } from "./utils/position";
+import { PositionMetricsCalculator } from "./services/positionMetricsCalculator";
 
 export async function notifyTelegram() {
-  console.log("🤖 Telegram Position Notifier");
+  // Check if running in test mode
+  const isTestMode = process.argv.includes('--test');
+
+  console.log("🤖 Telegram Position Notifier" + (isTestMode ? " (TEST MODE)" : ""));
   console.log("================================\n");
 
-  console.log("📨 Sending Telegram notification from latest position data...\n");
+  if (isTestMode) {
+    console.log("🧪 Running in test mode - will display message without sending\n");
+  } else {
+    console.log("📨 Sending Telegram notification from latest position data...\n");
+  }
 
-  const telegramNotifier = new TelegramNotifier(config.telegramBotToken, config.telegramChatId);
+  const telegramNotifier = new TelegramNotifier(config.telegramBotToken, config.telegramChatId, isTestMode);
 
-  if (!telegramNotifier.isEnabled()) {
+  if (!isTestMode && !telegramNotifier.isEnabled()) {
     console.log("❌ Telegram bot token or chat ID not configured in .env file");
     console.log("Add TELEGRAM_BOT_TOKEN=your-bot-token and TELEGRAM_CHAT_ID=your-chat-id to your .env file");
     process.exit(1);
@@ -78,68 +85,35 @@ export async function notifyTelegram() {
     console.log(`Found ${previousPositions.length} position(s) from previous entry for comparison\n`);
   }
 
-  // Build position history map for per-position P/L calculations
-  // Use ALL historical data (like HTML report does) instead of just 3 snapshots
-  const positionHistoryMap: Map<string, PositionData[]> = new Map();
+  // Use the centralized metrics calculator
+  const metricsCalculator = new PositionMetricsCalculator();
+  const portfolioMetrics = metricsCalculator.calculatePortfolioMetrics(allPositionsData, positions, previousPositions);
 
-  // Group all positions by position ID
-  for (const position of allPositionsData) {
-    const history = positionHistoryMap.get(position.positionId) || [];
-    history.push(position);
-    positionHistoryMap.set(position.positionId, history);
+  // Send position update notification with portfolio metrics
+  if (isTestMode) {
+    console.log("\n📋 Generating Telegram message...");
+    const message = await telegramNotifier.sendPositionUpdate(positions, portfolioMetrics);
+    console.log("\n" + "=".repeat(50));
+    console.log("TELEGRAM MESSAGE (not sent):");
+    console.log("=".repeat(50));
+    console.log(message);
+    console.log("=".repeat(50));
+  } else {
+    console.log("\n📤 Sending position update to Telegram...");
+    await telegramNotifier.sendPositionUpdate(positions, portfolioMetrics);
+    console.log("✅ Position update sent");
   }
-
-  // Sort each position's history by timestamp (newest first, like HTML report)
-  for (const [, history] of positionHistoryMap) {
-    history.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  }
-
-  // Calculate total P/L from all position histories (sum of individual P/Ls)
-  let totalProfitLoss = 0;
-  let totalInitialValue = 0;
-
-  for (const [, history] of positionHistoryMap) {
-    if (history.length > 0) {
-      const pnl = calculateProfitLoss(history);
-      totalProfitLoss += pnl.value;
-
-      // Get initial value from the oldest entry in this position's history
-      const oldestEntry = history[history.length - 1];
-      if (oldestEntry && oldestEntry.totalValueUSD !== undefined) {
-        totalInitialValue += oldestEntry.totalValueUSD;
-      }
-    }
-  }
-
-  const profitLossPercentage = totalInitialValue > 0 ? (totalProfitLoss / totalInitialValue) * 100 : 0;
-
-  // Create summary with corrected P/L values
-  const summary = {
-    totalValueUSD: positions.reduce((sum, pos) => sum + (pos.totalValueUSD ?? 0), 0),
-    totalFeesUSD: positions.reduce((sum, pos) => sum + (pos.uncollectedFees.totalUSD ?? 0), 0),
-    inRangeCount: positions.filter(
-      pos =>
-        pos.priceRange &&
-        pos.priceRange.current >= pos.priceRange.lower &&
-        pos.priceRange.current <= pos.priceRange.upper
-    ).length,
-    outOfRangeCount: 0,
-    profitLoss: totalProfitLoss,
-    profitLossPercentage: profitLossPercentage
-  };
-  summary.outOfRangeCount = positions.length - summary.inRangeCount;
-
-  // Send position update notification with history
-  console.log("\n📤 Sending position update to Telegram...");
-  await telegramNotifier.sendPositionUpdate(positions, summary, previousPositions, positionHistoryMap);
-  console.log("✅ Position update sent");
 
   // Check for significant changes if we have previous data
-  if (previousPositions.length > 0) {
+  if (!isTestMode && previousPositions.length > 0) {
     await checkForSignificantChanges(positions, previousPositions, telegramNotifier);
   }
 
-  console.log("\n✅ Telegram notification sent successfully!");
+  if (isTestMode) {
+    console.log("\n✅ Test completed - message generated but not sent");
+  } else {
+    console.log("\n✅ Telegram notification sent successfully!");
+  }
 }
 
 // Check for significant value/fee changes
