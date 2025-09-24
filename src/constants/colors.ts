@@ -82,14 +82,6 @@ export const COLORS = {
     CARD: "0 10px 30px rgba(0,0,0,0.2)",
     TEXT: "2px 2px 4px rgba(0,0,0,0.2)",
   },
-
-  // Discord embed colors (hex integers)
-  DISCORD: {
-    SUCCESS: 0x4caf50, // Green
-    ERROR: 0xf44336, // Red
-    INFO: 0x1e88e5, // Blue
-    WARNING: 0xffa000, // Orange
-  },
 } as const;
 
 export type Colors = typeof COLORS;

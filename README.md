@@ -1,13 +1,13 @@
 # Uniswap Position Tracker
 
-Automated tracking system for Uniswap V3 liquidity positions with historical data logging, web reporting, Discord and Telegram notifications.
+Automated tracking system for Uniswap V3 liquidity positions with historical data logging, web reporting, and Telegram notifications.
 
 ## Features
 
 - 📊 **Multi-chain Support**: Tracks positions on Ethereum and Arbitrum
 - 💰 **Comprehensive Analytics**: Calculates USD values, uncollected fees, and P/L tracking
 - 📈 **Price Monitoring**: Shows real-time price changes with percentage movements
-- 🔔 **Discord & Telegram Notifications**: Real-time updates with portfolio summaries and alerts
+- 🔔 **Telegram Notifications**: Real-time updates with portfolio summaries and alerts
 - 🕐 **Automated Tracking**: Daily snapshots via cron scheduler
 - 🌐 **Web Reports**: HTML reports with historical data visualization
 - ☁️ **Cloud Storage**: Optional Supabase integration for data persistence
@@ -20,7 +20,7 @@ Automated tracking system for Uniswap V3 liquidity positions with historical dat
 - Node.js 20+
 - Uniswap V3 position ID or wallet address
 - (Optional) Graph API key from [The Graph](https://thegraph.com/studio/apikeys/)
-- (Optional) Discord webhook and/or Telegram bot for notifications
+- (Optional) Telegram bot for notifications
 
 ### Installation
 
@@ -47,9 +47,6 @@ POSITION_ID=12345          # Track specific position
 
 # Optional - API Keys
 GRAPH_API_KEY=your-key     # For better reliability (recommended)
-
-# Optional - Discord Integration
-DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
 
 # Optional - Telegram Integration
 TELEGRAM_BOT_TOKEN=your-bot-token
@@ -86,9 +83,6 @@ npm run track-local:once
 npm run report
 npm run report-local  # Uses local file instead of Supabase
 
-# Send Discord notification
-npm run discord
-
 # Send Telegram notification
 npm run telegram
 npm run telegram:local  # Uses local file instead of Supabase
@@ -96,7 +90,6 @@ npm run telegram:local  # Uses local file instead of Supabase
 # Production commands (uses compiled JS)
 npm run prod:track:once
 npm run prod:report
-npm run prod:discord
 npm run prod:telegram
 ```
 
@@ -111,7 +104,7 @@ The repository includes automated workflows:
 - **Actions**:
   - Tracks positions from both chains
   - Saves to Supabase
-  - Sends Discord/Telegram notifications (if configured)
+  - Sends Telegram notifications (if configured)
   - Generates HTML report
   - Deploys to GitHub Pages
 
@@ -129,18 +122,11 @@ The repository includes automated workflows:
    - `WALLET_ADDRESS` or `POSITION_ID`
    - `GRAPH_API_KEY` (optional but recommended)
    - `SUPABASE_URL` and `SUPABASE_ANON_KEY`
-   - `DISCORD_WEBHOOK_URL` (optional)
    - `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` (optional)
 2. Enable GitHub Pages in repository settings (Source: GitHub Actions)
 3. Access your live report at: `https://[username].github.io/uniswap-position-tracker/`
 
 ## Notifications Setup
-
-### Discord Webhook
-
-1. Create a webhook in your Discord server
-2. Copy the webhook URL
-3. Add to `.env`: `DISCORD_WEBHOOK_URL=your-webhook-url`
 
 ### Telegram Bot
 
@@ -168,7 +154,6 @@ Each position is tracked with chain-specific data and displayed with appropriate
 ```
 ├── src/
 │   ├── index.ts                      # Main entry point
-│   ├── notifyDiscord.ts             # Discord notification script
 │   ├── notifyTelegram.ts            # Telegram notification script
 │   ├── client/
 │   │   ├── uniswapPositionTracker.ts # Main orchestration
@@ -179,14 +164,12 @@ Each position is tracked with chain-specific data and displayed with appropriate
 │   ├── services/
 │   │   ├── scheduler.ts             # Cron scheduling
 │   │   ├── htmlGenerator.ts         # HTML report generation
-│   │   ├── discordNotifier.ts       # Discord integration
 │   │   └── telegramNotifier.ts      # Telegram integration
 │   ├── config/
 │   │   └── index.ts                 # Configuration management
 │   ├── constants/
 │   │   ├── index.ts                 # Core constants
-│   │   ├── colors.ts                # Color definitions
-│   │   └── discordEmojis.ts        # Discord emoji mappings
+│   │   └── colors.ts                # Color definitions
 │   ├── types/
 │   │   └── index.ts                 # TypeScript interfaces
 │   └── utils/

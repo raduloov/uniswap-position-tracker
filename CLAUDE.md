@@ -17,6 +17,7 @@ This is a TypeScript application that automatically tracks Uniswap V3 liquidity 
 - Generates HTML reports with historical position tracking tables
 - Tracks 24-hour fee changes between position snapshots
 - Chain-specific badges with logos in HTML reports
+- Telegram bot notifications for position updates and alerts
 
 ## Technical Architecture
 
@@ -93,18 +94,40 @@ This is a TypeScript application that automatically tracks Uniswap V3 liquidity 
    - Groups positions by ID for multi-position tracking
    - Deployed to GitHub Pages via Actions
 
+8. **src/services/telegramNotifier.ts**
+   - Handles Telegram bot notifications
+   - Sends formatted position updates with portfolio summaries
+   - Tracks significant price changes and fee movements
+   - Supports emoji indicators for better readability
+   - Calculates P/L and percentage changes
+   - Groups positions by chain for clear organization
+
+9. **src/services/arbitrumFeeFetcher.ts**
+   - Fetches fee growth data for Arbitrum positions
+   - Makes direct RPC calls to Arbitrum network
+   - Retrieves tick data from Uniswap pool contracts
+   - Workaround for missing fee data in Arbitrum subgraph
+
+10. **src/notifyTelegram.ts**
+    - Standalone script for sending Telegram notifications
+    - Reads latest position data from storage
+    - Calculates portfolio summaries and changes
+    - Detects significant position changes for alerts
+    - Can be run independently via npm script
+
 ### Modular Architecture
 
-8. **src/config/**
+11. **src/config/**
 
    - `index.ts`: Environment variable loading and validation
    - `schema.ts`: TypeScript interfaces for configuration
    - Validates required parameters (WALLET_ADDRESS or POSITION_ID)
    - Skips validation in GitHub Actions environment (detects via GITHUB_ACTIONS env var)
 
-9. **src/constants/**
+12. **src/constants/**
 
-   - `index.ts`: Centralized constants and configuration
+    - `index.ts`: Centralized constants and configuration
+    - `colors.ts`: Color definitions for HTML reports and UI
    - Graph API configuration for multiple chains:
      - Ethereum subgraph endpoint
      - Arbitrum subgraph endpoint
@@ -112,7 +135,7 @@ This is a TypeScript application that automatically tracks Uniswap V3 liquidity 
    - Stablecoin symbols for USD value determination
    - Timezone configuration
 
-10. **src/types/**
+13. **src/types/**
 
     - `index.ts`: TypeScript interfaces and enums
     - `GraphQLPosition`: Graph API response structure
@@ -120,7 +143,7 @@ This is a TypeScript application that automatically tracks Uniswap V3 liquidity 
     - `Chain`: Enum for supported chains (ETHEREUM, ARBITRUM)
     - Clear separation between API and internal types
 
-11. **src/schemas/**
+14. **src/schemas/**
 
     - `index.ts`: Query string builders for The Graph API
     - `buildPositionByIdQuery()`: Builds query for single position
@@ -128,8 +151,12 @@ This is a TypeScript application that automatically tracks Uniswap V3 liquidity 
     - Reusable field definitions for maintainability
     - Note: Builds GraphQL-formatted query strings but sends via REST API (axios POST)
 
-12. **src/utils/**
-    - `index.ts`: Utility functions
+15. **src/utils/**
+    - `index.ts`: Core utility functions
+    - `formatting.ts`: Number and string formatting utilities
+    - `position.ts`: Position calculation helpers
+    - `positionHistory.ts`: Historical data management
+    - `summary.ts`: Portfolio summary calculations
     - `getGraphEndpoint(chain)`: Constructs Graph API endpoint for specified chain
     - `getSqrtPriceX96FromTick()`: Uniswap V3 tick-to-price conversion
     - `isGithubActionsEnv`: Detects GitHub Actions environment
@@ -184,6 +211,10 @@ POSITION_ID=12345
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key-here
 
+# Optional: Telegram bot configuration
+TELEGRAM_BOT_TOKEN=your-bot-token
+TELEGRAM_CHAT_ID=your-chat-id
+
 # Daily run time (24-hour format)
 SCHEDULE_TIME=09:00
 
@@ -211,9 +242,13 @@ npm run track-local:once
 npm run report
 npm run report-local  # Uses local file instead of Supabase
 
+# Send Telegram notification
+npm run telegram
+
 # Production commands (uses compiled JS)
 npm run prod:track:once
 npm run prod:report
+npm run prod:telegram
 ```
 
 ## Data Structure
@@ -289,7 +324,7 @@ Found X active position(s)
 ## Future Enhancements
 
 - Add support for additional chains (Polygon, Optimism, Base, etc.)
-- Email/Discord notifications for significant changes
+- Email notifications for significant changes
 - Web dashboard for visualization
 - Support for Uniswap V2 positions
 - Automatic fee collection when threshold reached
@@ -314,8 +349,9 @@ The project includes two GitHub Actions workflows for automation:
 4. Installs dependencies
 5. Builds TypeScript (if not cached)
 6. Runs position tracker once (`npm run prod:track:once`)
-7. Generates HTML report with latest data
-8. Deploys to GitHub Pages
+7. Sends Telegram notifications (if configured)
+8. Generates HTML report with latest data
+9. Deploys to GitHub Pages
 
 **Required Secrets:**
 
@@ -323,7 +359,8 @@ The project includes two GitHub Actions workflows for automation:
 - `GRAPH_API_KEY` - The Graph API key (optional but recommended)
 - `SUPABASE_URL` - Supabase project URL
 - `SUPABASE_ANON_KEY` - Supabase anonymous key
-- `DISCORD_WEBHOOK_URL` - Discord webhook URL (optional)
+- `TELEGRAM_BOT_TOKEN` - Telegram bot token (optional)
+- `TELEGRAM_CHAT_ID` - Telegram chat ID (optional)
 
 ### 2. Generate Report from Supabase (`generate-report.yml`)
 
@@ -379,6 +416,7 @@ To test the application:
 uniswap-position-tracker/
 ├── src/
 │   ├── index.ts                      # Main entry point
+│   ├── notifyTelegram.ts            # Telegram notification script
 │   ├── client/
 │   │   ├── uniswapPositionTracker.ts # Main orchestration class
 │   │   └── uniswapClient.ts         # Graph API & calculations
@@ -387,20 +425,28 @@ uniswap-position-tracker/
 │   │   └── supabaseStorage.ts       # Supabase cloud storage
 │   ├── services/
 │   │   ├── scheduler.ts             # Cron scheduling (timezone-aware)
-│   │   └── htmlGenerator.ts         # HTML report generation
+│   │   ├── htmlGenerator.ts         # HTML report generation
+│   │   ├── telegramNotifier.ts      # Telegram bot integration
+│   │   └── arbitrumFeeFetcher.ts    # Arbitrum fee data fetcher
 │   ├── config/
 │   │   ├── index.ts                 # Config loading & validation
 │   │   └── schema.ts                # Config TypeScript interfaces
 │   ├── constants/
-│   │   └── index.ts                 # Centralized constants
+│   │   ├── index.ts                 # Centralized constants
+│   │   └── colors.ts                # Color definitions for UI
 │   ├── schemas/
 │   │   └── index.ts                 # GraphQL query builders
 │   ├── types/
 │   │   └── index.ts                 # TypeScript interfaces
 │   └── utils/
-│       └── index.ts                 # Utility functions
+│       ├── index.ts                 # Core utility functions
+│       ├── formatting.ts            # Formatting utilities
+│       ├── position.ts              # Position calculations
+│       ├── positionHistory.ts       # History management
+│       └── summary.ts               # Portfolio summaries
 ├── docs/
-│   └── index.html                   # Generated HTML report (GitHub Pages)
+│   ├── index.html                   # Generated HTML report (GitHub Pages)
+│   └── assets/                      # Chain logos and assets
 ├── data/                            # Local output directory
 │   └── positions.json               # Historical position data
 ├── .github/

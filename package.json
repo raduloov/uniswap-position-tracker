@@ -14,8 +14,6 @@
     "report-local": "NODE_NO_WARNINGS=1 SUPABASE_URL= SUPABASE_ANON_KEY= tsx src/index.ts --report",
     "prod:track:once": "NODE_NO_WARNINGS=1 node dist/index.js --once",
     "prod:report": "NODE_NO_WARNINGS=1 node dist/index.js --report",
-    "discord": "NODE_NO_WARNINGS=1 tsx src/notifyDiscord.ts",
-    "prod:discord": "NODE_NO_WARNINGS=1 node dist/notifyDiscord.js",
     "telegram": "NODE_NO_WARNINGS=1 tsx src/notifyTelegram.ts",
     "prod:telegram": "NODE_NO_WARNINGS=1 node dist/notifyTelegram.js",
     "typecheck": "tsc --noEmit",

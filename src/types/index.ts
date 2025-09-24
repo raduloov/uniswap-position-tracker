@@ -96,23 +96,3 @@ export interface PositionData {
     currency: string;
   };
 }
-
-export interface DiscordEmbed {
-  title?: string;
-  description?: string;
-  color?: number;
-  fields?: Array<{
-    name: string;
-    value: string;
-    inline?: boolean;
-  }>;
-  footer?: {
-    text: string;
-  };
-  timestamp?: string;
-}
-
-export interface DiscordWebhookPayload {
-  content?: string;
-  embeds?: DiscordEmbed[];
-}

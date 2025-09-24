@@ -9,7 +9,6 @@ export const config = {
   scheduleTime: process.env["SCHEDULE_TIME"] || "09:00",
   dataFilePath: process.env["DATA_FILE_PATH"] || "./data/positions.json",
   graphApiKey: process.env["GRAPH_API_KEY"] || "",
-  discordWebhookUrl: process.env["DISCORD_WEBHOOK_URL"] || "",
   telegramBotToken: process.env["TELEGRAM_BOT_TOKEN"] || "",
   telegramChatId: process.env["TELEGRAM_CHAT_ID"] || ""
 };
