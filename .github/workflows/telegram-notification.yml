@@ -1,8 +1,6 @@
 name: Notify Telegram
 
 on:
-  schedule:
-    - cron: "35 21 * * *" # Daily at 21:35 UTC (00:35 Sofia time EEST) - 5 minutes after position tracking
   workflow_dispatch:
   workflow_run:
     workflows: ["Track Positions and Deploy"]
