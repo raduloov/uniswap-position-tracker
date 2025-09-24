@@ -1,5 +1,4 @@
-import { PositionData } from "../types";
-import { PositionMetrics, PortfolioMetrics } from "../types/metrics";
+import { PortfolioMetrics, PositionData, PositionMetrics } from "../types";
 import { calculateDashboardMetrics } from "../utils/dashboard";
 import {
   isPositionInRange,
@@ -12,7 +11,12 @@ import {
   calculatePositionAge,
   formatFeeTier
 } from "../utils/position";
-import { buildPositionMap, groupPositionsByTimestamp, getLatestPositions, getPreviousPositions } from "../utils/positionHistory";
+import {
+  buildPositionMap,
+  groupPositionsByTimestamp,
+  getLatestPositions,
+  getPreviousPositions
+} from "../utils/positionHistory";
 
 /**
  * Centralized service for calculating all position and portfolio metrics
