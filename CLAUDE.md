@@ -80,9 +80,10 @@ This is a TypeScript application that automatically tracks Uniswap V3 liquidity 
    - Runs task at specified time daily
    - Timezone-aware (uses Sofia timezone)
 
-7. **src/services/htmlGenerator.ts**
+7. **src/services/htmlGenerator/index.ts**
+
    - Generates HTML reports from position data
-   - Supports both Supabase and local file data sources
+   - Uses centralized DataFetcher service for data loading
    - Creates historical tracking tables for each position
    - Shows daily snapshots with key metrics:
      - Total Value (USD)
@@ -95,6 +96,7 @@ This is a TypeScript application that automatically tracks Uniswap V3 liquidity 
    - Deployed to GitHub Pages via Actions
 
 8. **src/services/telegramNotifier.ts**
+
    - Handles Telegram bot notifications
    - Sends formatted position updates with portfolio summaries
    - Tracks significant price changes and fee movements
@@ -103,47 +105,74 @@ This is a TypeScript application that automatically tracks Uniswap V3 liquidity 
    - Groups positions by chain for clear organization
 
 9. **src/services/arbitrumFeeFetcher.ts**
+
    - Fetches fee growth data for Arbitrum positions
    - Makes direct RPC calls to Arbitrum network
    - Retrieves tick data from Uniswap pool contracts
    - Workaround for missing fee data in Arbitrum subgraph
 
 10. **src/notifyTelegram.ts**
+
     - Standalone script for sending Telegram notifications
-    - Reads latest position data from storage
-    - Calculates portfolio summaries and changes
+    - Uses centralized DataFetcher service to load position data
+    - Calculates portfolio summaries and changes using PositionMetricsCalculator
     - Detects significant position changes for alerts
     - Can be run independently via npm script
 
+11. **src/services/dataFetcher.ts**
+    - Centralized service for fetching position data from storage
+    - Handles both Supabase and local file storage seamlessly
+    - Provides structured data including latest, previous positions and timestamps
+    - Eliminates code duplication between notifyTelegram and htmlGenerator
+    - Two main methods:
+      - `fetchPositionData()`: Returns structured data with analysis
+      - `fetchAllPositionData()`: Returns all position data as flat array
+
+12. **src/services/positionMetricsCalculator.ts**
+    - Centralized service for calculating all position and portfolio metrics
+    - Used by both HTML report generator and Telegram notifier for consistency
+    - Calculates comprehensive metrics including:
+      - Portfolio-level metrics (total P/L, 24h fees, value changes)
+      - Individual position metrics (P/L, fee changes, age, price movements)
+      - Dashboard summary metrics for quick overview
+    - Handles position history analysis and trend calculations
+    - Provides both detailed and summary metric calculation methods
+
 ### Modular Architecture
 
-11. **src/config/**
+13. **src/config/**
 
-   - `index.ts`: Environment variable loading and validation
-   - `schema.ts`: TypeScript interfaces for configuration
-   - Validates required parameters (WALLET_ADDRESS or POSITION_ID)
-   - Skips validation in GitHub Actions environment (detects via GITHUB_ACTIONS env var)
+- `index.ts`: Environment variable loading and validation
+- `schema.ts`: TypeScript interfaces for configuration
+- Validates required parameters (WALLET_ADDRESS or POSITION_ID)
+- Skips validation in GitHub Actions environment (detects via GITHUB_ACTIONS env var)
 
-12. **src/constants/**
+14. **src/constants/**
 
     - `index.ts`: Centralized constants and configuration
     - `colors.ts`: Color definitions for HTML reports and UI
-   - Graph API configuration for multiple chains:
-     - Ethereum subgraph endpoint
-     - Arbitrum subgraph endpoint
-   - Uniswap V3 math constants (Q32, Q96, Q128)
-   - Stablecoin symbols for USD value determination
-   - Timezone configuration
 
-13. **src/types/**
+- Graph API configuration for multiple chains:
+  - Ethereum subgraph endpoint
+  - Arbitrum subgraph endpoint
+- Uniswap V3 math constants (Q32, Q96, Q128)
+- Stablecoin symbols for USD value determination
+- Timezone configuration
+
+15. **src/types/**
 
     - `index.ts`: TypeScript interfaces and enums
     - `GraphQLPosition`: Graph API response structure
     - `PositionData`: Internal position data model with chain field
+    - `PositionMetrics`: Individual position metrics interface
+    - `PortfolioMetrics`: Portfolio-level metrics interface
+    - `DashboardMetrics`: Dashboard summary metrics interface
+    - `PositionDataResult`: Interface for structured position data fetching results
+    - `PositionDataSource`: Enum for data source types (SUPABASE, LOCAL, NONE)
     - `Chain`: Enum for supported chains (ETHEREUM, ARBITRUM)
     - Clear separation between API and internal types
 
-14. **src/schemas/**
+16. **src/schemas/**
 
     - `index.ts`: Query string builders for The Graph API
     - `buildPositionByIdQuery()`: Builds query for single position
@@ -151,12 +180,13 @@ This is a TypeScript application that automatically tracks Uniswap V3 liquidity 
     - Reusable field definitions for maintainability
     - Note: Builds GraphQL-formatted query strings but sends via REST API (axios POST)
 
-15. **src/utils/**
+17. **src/utils/**
     - `index.ts`: Core utility functions
     - `formatting.ts`: Number and string formatting utilities
-    - `position.ts`: Position calculation helpers
-    - `positionHistory.ts`: Historical data management
+    - `position.ts`: Position calculation helpers (P/L, fee changes, price changes, position age)
+    - `positionHistory.ts`: Historical data management and grouping
     - `summary.ts`: Portfolio summary calculations
+    - `dashboard.ts`: Dashboard metrics calculations from position groups
     - `getGraphEndpoint(chain)`: Constructs Graph API endpoint for specified chain
     - `getSqrtPriceX96FromTick()`: Uniswap V3 tick-to-price conversion
     - `isGithubActionsEnv`: Detects GitHub Actions environment
@@ -244,6 +274,9 @@ npm run report-local  # Uses local file instead of Supabase
 
 # Send Telegram notification
 npm run telegram
+
+# Print to the console the message that would be sent to Telegram
+npm run test:telegram
 
 # Production commands (uses compiled JS)
 npm run prod:track:once
@@ -424,10 +457,11 @@ uniswap-position-tracker/
 │   │   ├── dataStorage.ts           # Local file persistence
 │   │   └── supabaseStorage.ts       # Supabase cloud storage
 │   ├── services/
-│   │   ├── scheduler.ts             # Cron scheduling (timezone-aware)
-│   │   ├── htmlGenerator.ts         # HTML report generation
-│   │   ├── telegramNotifier.ts      # Telegram bot integration
-│   │   └── arbitrumFeeFetcher.ts    # Arbitrum fee data fetcher
+│   │   ├── scheduler.ts                  # Cron scheduling (timezone-aware)
+│   │   ├── htmlGenerator.ts              # HTML report generation
+│   │   ├── telegramNotifier.ts           # Telegram bot integration
+│   │   ├── arbitrumFeeFetcher.ts         # Arbitrum fee data fetcher
+│   │   └── positionMetricsCalculator.ts  # Centralized metrics calculation
 │   ├── config/
 │   │   ├── index.ts                 # Config loading & validation
 │   │   └── schema.ts                # Config TypeScript interfaces
@@ -443,7 +477,8 @@ uniswap-position-tracker/
 │       ├── formatting.ts            # Formatting utilities
 │       ├── position.ts              # Position calculations
 │       ├── positionHistory.ts       # History management
-│       └── summary.ts               # Portfolio summaries
+│       ├── summary.ts               # Portfolio summaries
+│       └── dashboard.ts             # Dashboard metrics
 ├── docs/
 │   ├── index.html                   # Generated HTML report (GitHub Pages)
 │   └── assets/                      # Chain logos and assets

@@ -1,8 +1,8 @@
 import * as fs from "fs/promises";
 import * as path from "path";
-import { SupabaseStorage } from "../../storage/supabaseStorage";
 import { TIMEZONE } from "../../constants";
 import { PortfolioMetrics, PositionData } from "../../types";
+import { DataFetcher } from "../dataFetcher";
 
 import { generateStyles } from "./styles";
 import { generateTokenPairSVG, getTokenIcon } from "../../utils/tokenPairLogo";
@@ -22,13 +22,11 @@ import { formatPercentageWithClass } from "../../utils/formatting";
 
 export class HtmlGenerator {
   private htmlFilePath: string;
-  private dataFilePath: string;
-  private supabaseStorage: SupabaseStorage;
+  private dataFetcher: DataFetcher;
 
   constructor(htmlFilePath: string, dataFilePath: string) {
     this.htmlFilePath = htmlFilePath;
-    this.dataFilePath = dataFilePath;
-    this.supabaseStorage = new SupabaseStorage();
+    this.dataFetcher = new DataFetcher(dataFilePath);
   }
 
   async generatePositionReport(): Promise<void> {
@@ -45,29 +43,7 @@ export class HtmlGenerator {
 
   private async loadAllPositionData(): Promise<PositionData[]> {
     try {
-      // Try to load from Supabase first
-      if (this.supabaseStorage.isEnabled()) {
-        const supabaseDataGroups = await this.supabaseStorage.loadAllPositions();
-        if (supabaseDataGroups.length > 0) {
-          // Flatten the grouped data into a single array
-          const supabaseData = supabaseDataGroups.flat();
-          console.log(`📊 Loaded ${supabaseData.length} entries from Supabase`);
-          return supabaseData;
-        }
-      }
-
-      // Fall back to local file
-      if (
-        await fs
-          .access(this.dataFilePath)
-          .then(() => true)
-          .catch(() => false)
-      ) {
-        const data = await fs.readFile(this.dataFilePath, "utf-8");
-        console.log(`📊 Loaded ${JSON.parse(data).length} entries from ${this.dataFilePath}`);
-        return JSON.parse(data) as PositionData[];
-      }
-      return [];
+      return await this.dataFetcher.fetchAllPositionData();
     } catch (error) {
       console.error("Error loading position data:", error);
       return [];

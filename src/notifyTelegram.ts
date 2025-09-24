@@ -1,14 +1,9 @@
 import { config } from "./config";
 import { TelegramNotifier } from "./services/telegramNotifier";
-import { SupabaseStorage } from "./storage/supabaseStorage";
 import { PositionData } from "./types";
-import {
-  buildPositionMap,
-  groupPositionsByTimestamp,
-  getLatestPositions,
-  getPreviousPositions
-} from "./utils/positionHistory";
+import { buildPositionMap } from "./utils/positionHistory";
 import { PositionMetricsCalculator } from "./services/positionMetricsCalculator";
+import { DataFetcher } from "./services/dataFetcher";
 
 export async function notifyTelegram() {
   // Check if running in test mode
@@ -31,59 +26,23 @@ export async function notifyTelegram() {
     process.exit(1);
   }
 
-  let positions: PositionData[] = [];
-  let previousPositions: PositionData[] = [];
-  let allPositionsData: PositionData[] = [];
+  // Fetch position data using centralized service
+  const dataFetcher = new DataFetcher(config.dataFilePath);
+  const positionData = await dataFetcher.fetchPositionData();
 
-  // Get position history
-  console.log("☁️ Loading data from Supabase...");
-  const supabaseStorage = new SupabaseStorage();
-
-  // Load all positions from Supabase
-  const snapshots = await supabaseStorage.loadAllPositions();
-
-  if (!snapshots || snapshots.length === 0) {
-    console.log("❌ No position data found in Supabase");
+  if (positionData.source === "none") {
+    console.log("❌ No position data found");
     process.exit(1);
   }
 
-  console.log(`Loaded ${snapshots.length} snapshot(s) from Supabase`);
+  const { allPositions: allPositionsData, latestPositions: positions, previousPositions, timestamps } = positionData;
 
-  // Flatten all snapshots
-  allPositionsData = snapshots.flat();
-  console.log(`Total positions across all snapshots: ${allPositionsData.length}`);
-
-  // Group by timestamp
-  const byTimestamp = groupPositionsByTimestamp(allPositionsData);
-  console.log(`Unique timestamps: ${byTimestamp.size}`);
-
-  // Debug: Show latest timestamp and its positions
-  const timestamps = Array.from(byTimestamp.keys()).sort();
+  // Debug: Show latest timestamp if available
   if (timestamps.length > 0) {
     const latestTimestamp = timestamps[timestamps.length - 1];
-    const latestPositions = latestTimestamp ? byTimestamp.get(latestTimestamp) || [] : [];
     console.log(`Latest timestamp: ${latestTimestamp}`);
-    console.log(
-      `Positions at latest timestamp: ${latestPositions.map(p => `${p.positionId} (${p.chain})`).join(", ")}`
-    );
-  }
-
-  // Get latest positions
-  positions = getLatestPositions(byTimestamp);
-  console.log(`Found ${positions.length} position(s) in latest entry`);
-
-  // Debug: Show position IDs
-  if (positions.length > 0) {
-    console.log(`Position IDs: ${positions.map(p => `${p.positionId} (${p.chain})`).join(", ")}`);
   }
   console.log();
-
-  // Get previous positions for comparison
-  const prevPositions = getPreviousPositions(byTimestamp);
-  if (prevPositions && prevPositions.length > 0) {
-    previousPositions = prevPositions;
-    console.log(`Found ${previousPositions.length} position(s) from previous entry for comparison\n`);
-  }
 
   // Use the centralized metrics calculator
   const metricsCalculator = new PositionMetricsCalculator();

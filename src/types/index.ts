@@ -97,6 +97,20 @@ export interface PositionData {
   };
 }
 
+export enum PositionDataSource {
+  SUPABASE = "supabase",
+  LOCAL = "local",
+  NONE = "none"
+}
+
+export interface PositionDataResult {
+  allPositions: PositionData[];
+  latestPositions: PositionData[];
+  previousPositions: PositionData[];
+  timestamps: string[];
+  source: PositionDataSource;
+}
+
 export interface PositionMetrics {
   positionId: string;
   chain: string;
