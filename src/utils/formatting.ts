@@ -75,7 +75,8 @@ export const htmlFormatters = {
     if (difference === null) {
       return '<span style="color: #718096;">-</span>';
     }
-    return `<span class="fees-24h">${formatCurrency(difference, { showSign: true })}</span>`;
+    const className = difference < 0 ? 'fees-24h-negative' : 'fees-24h';
+    return `<span class="${className}">${formatCurrency(difference, { showSign: true })}</span>`;
   },
 
   /**

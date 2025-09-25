@@ -1,21 +1,21 @@
 /**
- * Color constants for HTML report styling
+ * Light theme color constants for HTML report styling
  */
 
-// Primary colors
-export const COLORS = {
+// Light theme colors
+export const LIGHT_COLORS = {
   // Background gradients
   BACKGROUND: {
-    PRIMARY_START: "#1a1a1a",
-    PRIMARY_END: "#2d2d2d",
+    PRIMARY_START: "#667eea",
+    PRIMARY_END: "#764ba2",
   },
 
   // Text colors
   TEXT: {
     WHITE: "white",
-    PRIMARY: "#e0e0e0",
-    SECONDARY: "#a0a0a0",
-    MUTED: "#8a8a8a",
+    PRIMARY: "#333",
+    SECONDARY: "#666",
+    MUTED: "#4a5568",
     LIGHT: "rgba(255,255,255,0.9)",
     LIGHTER: "rgba(255,255,255,0.8)",
   },
@@ -32,43 +32,43 @@ export const COLORS = {
 
   // Badge colors
   BADGE: {
-    DEFAULT_BG: "#3a3a3a",
-    DEFAULT_TEXT: "#d0d0d0",
-    IN_RANGE_BG: "rgba(72, 187, 120, 0.2)",
-    IN_RANGE_TEXT: "#48bb78",
-    OUT_RANGE_BG: "rgba(245, 101, 101, 0.2)",
-    OUT_RANGE_TEXT: "#f56565",
+    DEFAULT_BG: "#e9ecef",
+    DEFAULT_TEXT: "#495057",
+    IN_RANGE_BG: "#d4edda",
+    IN_RANGE_TEXT: "#155724",
+    OUT_RANGE_BG: "#f8d7da",
+    OUT_RANGE_TEXT: "#721c24",
     LIVE_GRADIENT_START: "#FF6B6B",
     LIVE_GRADIENT_END: "#FF8E53",
   },
-  
+
   // Chain-specific colors
   CHAIN: {
     ARBITRUM: {
-      BG: "rgba(33, 49, 71, 0.2)",
-      TEXT: "#4EABFF",
-      BORDER: "#4EABFF30",
+      BG: "#f0f9ff",
+      TEXT: "#213147",
+      BORDER: "#21314720",
     },
     ETHEREUM: {
-      BG: "rgba(98, 126, 234, 0.2)",
-      TEXT: "#8FA7FF",
-      BORDER: "#8FA7FF30",
+      BG: "#f5f5ff",
+      TEXT: "#627EEA",
+      BORDER: "#627EEA20",
     },
   },
 
   // Border colors
   BORDER: {
-    LIGHT: "#3a3a3a",
-    DEFAULT: "#4a4a4a",
+    LIGHT: "#f0f0f0",
+    DEFAULT: "#e2e8f0",
   },
 
   // Background colors
   BACKGROUND_SOLID: {
-    WHITE: "#0f0f0f",
-    HEADER: "#333333",
-    HOVER: "rgba(255,255,255,0.1)",
-    GRADIENT_START: "#2a2a2a",
-    GRADIENT_END: "#1f1f1f",
+    WHITE: "white",
+    HEADER: "#f7f8fa",
+    HOVER: "#f8f9fa",
+    GRADIENT_START: "#f8f9fa",
+    GRADIENT_END: "#ffffff",
   },
 
   // Indicator backgrounds (with transparency)
@@ -87,4 +87,4 @@ export const COLORS = {
   },
 } as const;
 
-export type Colors = typeof COLORS;
+export type LightColors = typeof LIGHT_COLORS;

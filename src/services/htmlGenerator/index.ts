@@ -103,15 +103,13 @@ export class HtmlGenerator {
       .filter(pos => pos !== undefined) as PositionData[];
 
     // Use hourly data as current positions if available, otherwise use latest daily
-    const currentPositions = latestHourlyData && latestHourlyData.length > 0
-      ? latestHourlyData
-      : latestDailyPositions;
+    const currentPositions = latestHourlyData && latestHourlyData.length > 0 ? latestHourlyData : latestDailyPositions;
 
     // Calculate portfolio metrics with proper current and previous positions
     const portfolioMetrics = metricsCalculator.calculatePortfolioMetrics(
       combinedData,
       currentPositions,
-      latestDailyPositions  // Use latest daily as "previous" for 24h comparison
+      latestDailyPositions // Use latest daily as "previous" for 24h comparison
     );
 
     const dashboardSection = this.buildDashboardSection(portfolioMetrics.dashboard);
@@ -139,12 +137,52 @@ export class HtmlGenerator {
     <style>
 ${generateStyles()}
     </style>
+    <script>
+        // Theme management
+        (function() {
+            // Check for saved theme preference or default to dark
+            const currentTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', currentTheme);
+        })();
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+
+            // Update icon visibility
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            document.querySelectorAll('.theme-toggle-icon').forEach(icon => {
+                icon.classList.remove('active');
+            });
+            const iconToShow = document.querySelector('.theme-toggle-icon.' + theme);
+            if (iconToShow) {
+                iconToShow.classList.add('active');
+            }
+        }
+
+        // Set initial icon state after DOM loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+            updateThemeIcon(currentTheme);
+        });
+    </script>
 </head>
 <body>
+    <!-- Theme toggle button -->
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+        <img class="theme-toggle-icon dark" src="assets/sun-solid-full.svg" alt="Switch to light mode" />
+        <img class="theme-toggle-icon light" src="assets/moon-solid-full.svg" alt="Switch to dark mode" />
+    </button>
     <div class="container">
         <div class="page-header">
             <div class="uniswap-logo">
-                <img src="assets/uniswap-logo.svg" alt="Uniswap" style="width: 100%; height: 100%; filter: brightness(0) invert(1);" />
+                <img src="assets/uniswap-logo.svg" alt="Uniswap" style="width: 100%; height: 100%; filter: var(--logo-filter);" />
             </div>
             <h1>Uniswap Position Tracker</h1>
         </div>
@@ -266,7 +304,7 @@ ${generateStyles()}
     // Use all metrics from centralized calculator
     const positionAge = positionMetrics?.positionAge || { days: 0, text: "New position" };
     const averageDailyFees = positionMetrics?.averageDailyFees || 0;
-    const latestTotalFees = positionMetrics?.currentFees || 0;  // Use current fees from metrics
+    const latestTotalFees = positionMetrics?.currentFees || 0; // Use current fees from metrics
     const profitLoss = {
       value: positionMetrics?.totalPnL || 0,
       percentage: positionMetrics?.totalPnLPercentage || 0
@@ -392,20 +430,24 @@ ${generateStyles()}
     const priceDiff = calculatePriceDifference(current.priceRange?.current, lastDaily.priceRange?.current);
     const currentPriceHtml = formatPriceWithChange(current.priceRange?.current, priceDiff?.percentageChange || null);
 
-    // Get current time for live update
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString("en-US", {
+    // Use timestamp from the actual position data
+    const positionDate = new Date(current.timestamp);
+    const timeStr = positionDate.toLocaleTimeString("en-GB", {
       hour: "2-digit",
       minute: "2-digit",
+      hour12: false,
       timeZone: TIMEZONE.SOFIA
     });
-    const dateStr = now
+    const monthStr = positionDate
       .toLocaleDateString("en-US", {
         month: "short",
-        day: "numeric",
         timeZone: TIMEZONE.SOFIA
       })
       .toUpperCase();
+    const dayStr = positionDate.toLocaleDateString("en-US", {
+      day: "numeric",
+      timeZone: TIMEZONE.SOFIA
+    });
 
     // Calculate 24h fee earnings: current total fees - last daily total fees
     // This shows how much fees were earned in the last 24 hours
@@ -422,7 +464,7 @@ ${generateStyles()}
         <tr class="current-state-row">
             <td>
                 <span class="live-badge">LIVE</span>
-                <span class="live-time">${dateStr} ${timeStr}</span>
+                <span class="live-time">${monthStr} ${dayStr}, ${timeStr}</span>
             </td>
             <td>${feesDifferenceHtml}</td>
             <td>${totalValueHtml}</td>
