@@ -106,6 +106,7 @@ export function calculatePriceChange(
 
 /**
  * Calculate profit/loss for a position history
+ * @param positions - Array of position data, with the first element being the most recent/live position
  */
 export function calculateProfitLoss(positions: PositionData[]): {
   value: number;
@@ -115,6 +116,9 @@ export function calculateProfitLoss(positions: PositionData[]): {
     return { value: 0, percentage: 0 };
   }
 
+  // For P/L calculation:
+  // - latest (positions[0]) is the current/live position
+  // - oldest (positions[positions.length - 1]) is the first tracked position
   const latest = positions[0];
   const oldest = positions[positions.length - 1];
 
@@ -122,17 +126,16 @@ export function calculateProfitLoss(positions: PositionData[]): {
     return { value: 0, percentage: 0 };
   }
 
-  // Calculate value change
+  // Simple P/L calculation:
+  // P/L = (Current Position Total Value - Initial Position Total Value) + Current Uncollected Fees
+  // This assumes initial position had no fees (or they were negligible)
+
   const currentValue = latest.totalValueUSD || 0;
   const initialValue = oldest.totalValueUSD || 0;
-  const valueChange = currentValue - initialValue;
+  const currentFees = latest.uncollectedFees?.totalUSD || 0;
 
-  // Total fees earned is the current uncollected fees
-  // (assuming we started tracking when position was created and fees haven't been collected)
-  const totalFeesEarned = latest.uncollectedFees?.totalUSD || 0;
-
-  // Total profit/loss = value change + total fees earned
-  const totalProfitLoss = valueChange + totalFeesEarned;
+  // Total profit/loss = value change + current uncollected fees
+  const totalProfitLoss = (currentValue - initialValue) + currentFees;
 
   // Calculate percentage based on initial investment (first position total value)
   // P/L % = (Total P/L / Initial Value) * 100

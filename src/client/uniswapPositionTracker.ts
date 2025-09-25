@@ -4,7 +4,7 @@ import { HtmlGenerator } from "../services/htmlGenerator";
 import { Scheduler } from "../services/scheduler";
 import { DataStorage } from "../storage/dataStorage";
 import { SupabaseStorage } from "../storage/supabaseStorage";
-import { Chain } from "../types";
+import { Chain, TrackingType } from "../types";
 import UniswapClient from "./uniswapClient";
 
 class UniswapPositionTracker {
@@ -26,16 +26,17 @@ class UniswapPositionTracker {
     this.htmlGenerator = new HtmlGenerator(DEFAULT_REPORT_PATH, config.dataFilePath);
   }
 
-  async getUniswapPositions(): Promise<void> {
+  async getUniswapPositions(trackingType: TrackingType): Promise<void> {
     try {
       console.log("\n" + "=".repeat(50));
       console.log(`Checking positions at ${new Date().toLocaleString("en-US", { timeZone: TIMEZONE.SOFIA })}`);
       console.log(`Wallet: ${config.walletAddress}`);
+      console.log(`Tracking Type: ${trackingType}`);
       console.log("=".repeat(50));
 
       // Create a shared timestamp for all positions in this batch
       const batchTimestamp = new Date().toISOString();
-      
+
       // Fetch positions from both chains with the same timestamp
       const [ethereumPositions, arbitrumPositions] = await Promise.all([
         this.ethereumClient.getPositions(config.walletAddress, config.positionId, batchTimestamp),
@@ -100,10 +101,11 @@ class UniswapPositionTracker {
 
       // Save to Supabase if configured, otherwise use local file
       if (this.supabaseStorage.isEnabled()) {
-        await this.supabaseStorage.savePositions(positions);
+        await this.supabaseStorage.savePositions(positions, trackingType);
       } else {
-        await this.storage.saveData(positions);
-        console.log(`\n💾 Saved ${positions.length} position(s) to ${config.dataFilePath}`);
+        await this.storage.saveData(positions, trackingType);
+        const fileInfo = trackingType === TrackingType.HOURLY ? "hourly data file" : config.dataFilePath;
+        console.log(`\n💾 Saved ${positions.length} position(s) to ${fileInfo}`);
       }
     } catch (error) {
       console.error("Error checking positions:", error);
@@ -154,26 +156,41 @@ class UniswapPositionTracker {
     }
   }
 
-  async start(runOnce: boolean = false): Promise<void> {
+  async start(runOnce: boolean = false, hourly: boolean = false): Promise<void> {
     console.log("🚀 Uniswap Position Tracker Started");
 
     if (!this.supabaseStorage.isEnabled()) {
       console.log(`📊 Data will be saved to: ${config.dataFilePath}`);
     }
 
+    const trackingType = hourly ? TrackingType.HOURLY : TrackingType.DAILY;
+
     if (runOnce) {
-      console.log("🔄 Running once and exiting...");
-      await this.getUniswapPositions();
+      console.log(`🔄 Running once (${trackingType}) and exiting...`);
+      await this.getUniswapPositions(trackingType);
       await this.htmlGenerator.generatePositionReport();
       return;
     }
 
-    console.log(`⏰ Scheduled to run daily at: ${config.scheduleTime}`);
+    if (trackingType === TrackingType.HOURLY) {
+      console.log("⏰ Scheduled to run every hour");
 
-    await this.getUniswapPositions();
-    await this.htmlGenerator.generatePositionReport();
+      // Run immediately
+      await this.getUniswapPositions(TrackingType.HOURLY);
+      await this.htmlGenerator.generatePositionReport();
 
-    this.scheduler.schedule(config.scheduleTime, () => this.getUniswapPositions());
+      // Schedule hourly runs
+      this.scheduler.scheduleHourly(() => this.getUniswapPositions(TrackingType.HOURLY));
+    } else {
+      console.log(`⏰ Scheduled to run daily at: ${config.scheduleTime}`);
+
+      // Run immediately
+      await this.getUniswapPositions(TrackingType.DAILY);
+      await this.htmlGenerator.generatePositionReport();
+
+      // Schedule daily runs
+      this.scheduler.schedule(config.scheduleTime, () => this.getUniswapPositions(TrackingType.DAILY));
+    }
 
     console.log("\n✅ Tracker is now running. Press Ctrl+C to stop.");
 

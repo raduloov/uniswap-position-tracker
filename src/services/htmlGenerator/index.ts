@@ -32,7 +32,8 @@ export class HtmlGenerator {
   async generatePositionReport(): Promise<void> {
     // Load all historical data
     const allData = await this.loadAllPositionData();
-    const html = this.buildHtml(allData);
+    const latestHourlyData = await this.loadLatestHourlyData();
+    const html = this.buildHtml(allData, latestHourlyData);
 
     const dir = path.dirname(this.htmlFilePath);
     await fs.mkdir(dir, { recursive: true });
@@ -50,7 +51,16 @@ export class HtmlGenerator {
     }
   }
 
-  private buildHtml(allData: PositionData[]): string {
+  private async loadLatestHourlyData(): Promise<PositionData[] | null> {
+    try {
+      return await this.dataFetcher.fetchLatestHourlyPosition();
+    } catch (error) {
+      console.error("Error loading hourly data:", error);
+      return null;
+    }
+  }
+
+  private buildHtml(allData: PositionData[], latestHourlyData: PositionData[] | null): string {
     const now = new Date();
     const currentDate = now.toLocaleDateString("en-US", {
       year: "numeric",
@@ -69,9 +79,41 @@ export class HtmlGenerator {
     // Group positions by positionId
     const positionGroups = this.groupPositionsByIds(allData);
 
+    // Group hourly data by position ID if available
+    const hourlyPositionGroups = new Map<string, PositionData>();
+    if (latestHourlyData) {
+      for (const position of latestHourlyData) {
+        hourlyPositionGroups.set(position.positionId, position);
+      }
+    }
+
     // Calculate all metrics using centralized calculator
     const metricsCalculator = new PositionMetricsCalculator();
-    const portfolioMetrics = metricsCalculator.calculatePortfolioMetrics(allData);
+
+    // Combine daily and hourly data for complete P/L calculation
+    let combinedData = [...allData];
+    if (latestHourlyData && latestHourlyData.length > 0) {
+      // Add hourly data to the combined dataset for accurate P/L calculation
+      combinedData.push(...latestHourlyData);
+    }
+
+    // Get the latest daily positions (before hourly)
+    const latestDailyPositions = Array.from(positionGroups.values())
+      .map(positions => positions[0])
+      .filter(pos => pos !== undefined) as PositionData[];
+
+    // Use hourly data as current positions if available, otherwise use latest daily
+    const currentPositions = latestHourlyData && latestHourlyData.length > 0
+      ? latestHourlyData
+      : latestDailyPositions;
+
+    // Calculate portfolio metrics with proper current and previous positions
+    const portfolioMetrics = metricsCalculator.calculatePortfolioMetrics(
+      combinedData,
+      currentPositions,
+      latestDailyPositions  // Use latest daily as "previous" for 24h comparison
+    );
+
     const dashboardSection = this.buildDashboardSection(portfolioMetrics.dashboard);
 
     const positionTables = Array.from(positionGroups.entries())
@@ -81,7 +123,10 @@ export class HtmlGenerator {
         const latestB = positionsB[0]?.timestamp || "";
         return new Date(latestB).getTime() - new Date(latestA).getTime();
       })
-      .map(([positionId, positions]) => this.buildPositionHistoryTable(positionId, positions, portfolioMetrics))
+      .map(([positionId, positions]) => {
+        const hourlyPosition = hourlyPositionGroups.get(positionId) || null;
+        return this.buildPositionHistoryTable(positionId, positions, portfolioMetrics, hourlyPosition);
+      })
       .join("\n");
 
     return `<!DOCTYPE html>
@@ -193,7 +238,8 @@ ${generateStyles()}
   private buildPositionHistoryTable(
     positionId: string,
     positions: PositionData[],
-    portfolioMetrics: PortfolioMetrics
+    portfolioMetrics: PortfolioMetrics,
+    hourlyPosition: PositionData | null = null
   ): string {
     if (positions.length === 0) return "";
 
@@ -217,18 +263,20 @@ ${generateStyles()}
     // Get metrics for this position from the portfolio metrics
     const positionMetrics = portfolioMetrics.positions.find(p => p.positionId === positionId);
 
-    // Use metrics from centralized calculator
+    // Use all metrics from centralized calculator
     const positionAge = positionMetrics?.positionAge || { days: 0, text: "New position" };
     const averageDailyFees = positionMetrics?.averageDailyFees || 0;
-    const latestTotalFees = latestPosition.uncollectedFees?.totalUSD || 0;
-
-    // Use P/L from centralized calculator
-    const profitLoss = positionMetrics
-      ? { value: positionMetrics.totalPnL, percentage: positionMetrics.totalPnLPercentage }
-      : { value: 0, percentage: 0 };
+    const latestTotalFees = positionMetrics?.currentFees || 0;  // Use current fees from metrics
+    const profitLoss = {
+      value: positionMetrics?.totalPnL || 0,
+      percentage: positionMetrics?.totalPnLPercentage || 0
+    };
     const profitLossClass = profitLoss.value > 0 ? "positive" : profitLoss.value < 0 ? "negative" : "neutral";
     const profitLossSign = profitLoss.value >= 0 ? "+" : "-";
     const profitLossPercentSign = profitLoss.percentage >= 0 ? "+" : "";
+
+    // Use real hourly data if available, otherwise skip the current state row
+    const currentStateRow = hourlyPosition ? this.buildCurrentStateRow(hourlyPosition, latestPosition) : "";
 
     const rows = positions
       .map((position, index) => {
@@ -287,7 +335,7 @@ ${generateStyles()}
                     </div>
                 </div>
             </div>
-            
+
             <div class="table-container">
                 <table>
                     <thead>
@@ -300,6 +348,7 @@ ${generateStyles()}
                         </tr>
                     </thead>
                     <tbody>
+                        ${currentStateRow}
                         ${rows}
                     </tbody>
                 </table>
@@ -328,6 +377,53 @@ ${generateStyles()}
     return `
         <tr>
             <td>${fullDateStr}</td>
+            <td>${feesDifferenceHtml}</td>
+            <td>${totalValueHtml}</td>
+            <td>${currentPriceHtml}</td>
+            <td>${statusBadge}</td>
+        </tr>`;
+  }
+
+  private buildCurrentStateRow(current: PositionData, lastDaily: PositionData): string {
+    const isInRange = isPositionInRange(current);
+    const statusBadge = formatStatusBadge(isInRange);
+
+    // Calculate changes from last daily snapshot (24h changes)
+    const priceDiff = calculatePriceDifference(current.priceRange?.current, lastDaily.priceRange?.current);
+    const currentPriceHtml = formatPriceWithChange(current.priceRange?.current, priceDiff?.percentageChange || null);
+
+    // Get current time for live update
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: TIMEZONE.SOFIA
+    });
+    const dateStr = now
+      .toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        timeZone: TIMEZONE.SOFIA
+      })
+      .toUpperCase();
+
+    // Calculate 24h fee earnings: current total fees - last daily total fees
+    // This shows how much fees were earned in the last 24 hours
+    const currentTotalFees = current.uncollectedFees?.totalUSD ?? 0;
+    const lastDailyTotalFees = lastDaily.uncollectedFees?.totalUSD ?? 0;
+    const fees24h = currentTotalFees - lastDailyTotalFees;
+    const feesDifferenceHtml = formatFeeDifference(fees24h);
+
+    // Calculate total value change from last daily
+    const valueDiff = calculateTotalValueDifference(current.totalValueUSD, lastDaily.totalValueUSD);
+    const totalValueHtml = formatTotalValueWithChange(current.totalValueUSD, valueDiff?.percentageChange || null);
+
+    return `
+        <tr class="current-state-row">
+            <td>
+                <span class="live-badge">LIVE</span>
+                <span class="live-time">${dateStr} ${timeStr}</span>
+            </td>
             <td>${feesDifferenceHtml}</td>
             <td>${totalValueHtml}</td>
             <td>${currentPriceHtml}</td>

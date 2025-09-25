@@ -25,6 +25,9 @@ import {
 export class PositionMetricsCalculator {
   /**
    * Calculate all metrics for a portfolio of positions
+   * @param allPositionData - All historical position data
+   * @param currentPositions - Current positions (can be hourly data)
+   * @param previousPositions - Previous positions for 24h comparison (typically daily data)
    */
   calculatePortfolioMetrics(
     allPositionData: PositionData[],
@@ -44,8 +47,17 @@ export class PositionMetricsCalculator {
     // Build position history map
     const positionHistoryMap = this.buildPositionHistoryMap(allPositionData);
 
-    // Calculate dashboard metrics
-    const dashboard = calculateDashboardMetrics(positionHistoryMap);
+    // Update position history map with current positions if they're newer (handles hourly data)
+    for (const position of currentPositions) {
+      const history = positionHistoryMap.get(position.positionId) || [];
+      if (history.length === 0 || (history[0] && new Date(position.timestamp).getTime() > new Date(history[0].timestamp).getTime())) {
+        positionHistoryMap.set(position.positionId, [position, ...history]);
+      }
+    }
+
+    // Calculate dashboard metrics using position history
+    // Note: Dashboard will be recalculated with current position values below
+    let dashboard = calculateDashboardMetrics(positionHistoryMap);
 
     // Calculate total P/L across all positions
     let totalPnL = 0;
@@ -66,12 +78,17 @@ export class PositionMetricsCalculator {
 
     const totalPnLPercentage = totalInitialValue > 0 ? (totalPnL / totalInitialValue) * 100 : 0;
 
-    // Calculate 24h fees
+    // Calculate 24h fees (difference between current and previous)
     const total24hFees = calculate24hFees(currentPositions, previousPositions);
 
-    // Calculate current totals
+    // Calculate current totals from current positions (may be hourly data)
     const totalValueUSD = currentPositions.reduce((sum, pos) => sum + (pos.totalValueUSD ?? 0), 0);
     const totalFeesUSD = currentPositions.reduce((sum, pos) => sum + (pos.uncollectedFees.totalUSD ?? 0), 0);
+
+    // Update dashboard with current values
+    dashboard.totalValue = totalValueUSD;
+    dashboard.totalFees = totalFeesUSD;
+    dashboard.fees24h = total24hFees;
 
     // Count in/out of range
     let inRangeCount = 0;
@@ -84,25 +101,51 @@ export class PositionMetricsCalculator {
       }
     });
 
-    // Get ETH price info (from first position that has it)
+    // Get ETH price info (from WETH positions)
     let currentEthPrice: number | null = null;
     let ethPrice24hChange: number | null = null;
     let ethPrice24hChangePercentage: number | null = null;
 
-    const ethPosition = currentPositions.find(p => p.priceRange?.current);
+    // Find WETH position for ETH price
+    const ethPosition = currentPositions.find(p =>
+      (p.token0.symbol === "WETH" || p.token1.symbol === "WETH") && p.priceRange?.current
+    );
+
     if (ethPosition?.priceRange?.current) {
       currentEthPrice = ethPosition.priceRange.current;
+      dashboard.currentEthPrice = currentEthPrice;
 
-      // Find previous ETH price
+      // Find previous ETH price from previous positions
       if (previousPositions && previousPositions.length > 0) {
-        const prevEthPosition = previousPositions.find(p => p.priceRange?.current);
+        const prevEthPosition = previousPositions.find(p =>
+          (p.token0.symbol === "WETH" || p.token1.symbol === "WETH") && p.priceRange?.current
+        );
         if (prevEthPosition?.priceRange?.current) {
           const priceChange = calculatePriceChange(currentEthPrice, prevEthPosition.priceRange.current);
           ethPrice24hChange = priceChange.difference;
           ethPrice24hChangePercentage = priceChange.percentage;
+          dashboard.ethPriceChange = ethPrice24hChangePercentage;
         }
       }
     }
+
+    // Calculate percentage changes for dashboard
+    // Total fees change (from previous to current)
+    if (previousPositions && previousPositions.length > 0) {
+      const previousTotalFees = previousPositions.reduce((sum, pos) => sum + (pos.uncollectedFees?.totalUSD ?? 0), 0);
+      if (previousTotalFees > 0) {
+        dashboard.totalFeesChange = ((totalFeesUSD - previousTotalFees) / previousTotalFees) * 100;
+      }
+    }
+
+    // Total value change (from initial investment)
+    // Use the totalInitialValue already calculated above
+    if (totalInitialValue > 0) {
+      dashboard.totalValueChange = ((totalValueUSD - totalInitialValue) / totalInitialValue) * 100;
+    }
+
+    // P&L change percentage
+    dashboard.totalPnLChange = totalPnLPercentage;
 
     // Calculate individual position metrics
     const positionMetrics = this.calculatePositionMetrics(currentPositions, previousPositions, positionHistoryMap);
@@ -135,7 +178,13 @@ export class PositionMetricsCalculator {
 
     return currentPositions.map(position => {
       const prevPosition = prevPosMap.get(position.positionId);
-      const history = positionHistoryMap.get(position.positionId) || [];
+      let history = positionHistoryMap.get(position.positionId) || [];
+
+      // Ensure current position is included in history for P/L calculation
+      // If the current position is newer than what's in history, add it
+      if (history.length === 0 || (history[0] && new Date(position.timestamp).getTime() > new Date(history[0].timestamp).getTime())) {
+        history = [position, ...history];
+      }
 
       // Calculate P/L for this position
       const pnl = history.length > 0 ? calculateProfitLoss(history) : { value: 0, percentage: 0 };
@@ -241,6 +290,15 @@ export class PositionMetricsCalculator {
 
     if (allPositionData) {
       const positionHistoryMap = this.buildPositionHistoryMap(allPositionData);
+
+      // Update position history map with current positions if they're newer
+      for (const position of currentPositions) {
+        const history = positionHistoryMap.get(position.positionId) || [];
+        if (history.length === 0 || (history[0] && new Date(position.timestamp).getTime() > new Date(history[0].timestamp).getTime())) {
+          positionHistoryMap.set(position.positionId, [position, ...history]);
+        }
+      }
+
       let totalInitialValue = 0;
 
       for (const [, history] of positionHistoryMap) {

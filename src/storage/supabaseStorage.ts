@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import { PositionData } from "../types";
+import { PositionData, TrackingType } from "../types";
 
 export class SupabaseStorage {
   private supabase: SupabaseClient | null = null;
@@ -29,7 +29,7 @@ export class SupabaseStorage {
     return this.enabled;
   }
 
-  async savePositions(positions: PositionData[]): Promise<void> {
+  async savePositions(positions: PositionData[], trackingType: TrackingType): Promise<void> {
     if (!this.enabled || !this.supabase) return;
 
     try {
@@ -39,6 +39,7 @@ export class SupabaseStorage {
           position_id: position.positionId,
           wallet_address: position.owner,
           timestamp: position.timestamp,
+          tracking_type: trackingType,
           data: position // Store complete data as JSON
         });
 
@@ -46,46 +47,27 @@ export class SupabaseStorage {
           console.error("Error saving to Supabase:", error);
         }
       }
-      console.log(`💾 Saved ${positions.length} position(s) to Supabase`);
+      console.log(`💾 Saved ${positions.length} position(s) to Supabase (${trackingType})`);
     } catch (error) {
       console.error("Supabase save error:", error);
     }
   }
 
-  // Not used currently, but can be useful for future features
-  // async loadRecentPositions(days: number = 30): Promise<PositionData[]> {
-  //   if (!this.enabled || !this.supabase) return [];
-
-  //   try {
-  //     const since = new Date();
-  //     since.setDate(since.getDate() - days);
-
-  //     const { data, error } = await this.supabase
-  //       .from("position_snapshots")
-  //       .select("data")
-  //       .gte("timestamp", since.toISOString())
-  //       .order("timestamp", { ascending: false });
-
-  //     if (error) {
-  //       console.error("Error loading from Supabase:", error);
-  //       return [];
-  //     }
-
-  //     return (data || []).map(row => row.data as PositionData);
-  //   } catch (error) {
-  //     console.error("Supabase load error:", error);
-  //     return [];
-  //   }
-  // }
-
-  async loadAllPositions(): Promise<PositionData[][]> {
+  async loadAllPositions(trackingType?: TrackingType): Promise<PositionData[][]> {
     if (!this.enabled || !this.supabase) return [];
 
     try {
-      const { data, error } = await this.supabase
+      let query = this.supabase
         .from("position_snapshots")
-        .select("data, timestamp")
+        .select("data, timestamp, tracking_type")
         .order("timestamp", { ascending: true });
+
+      // Filter by tracking type if specified
+      if (trackingType) {
+        query = query.eq("tracking_type", trackingType);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error("Error loading from Supabase:", error);
@@ -110,6 +92,44 @@ export class SupabaseStorage {
     } catch (error) {
       console.error("Supabase load error:", error);
       return [];
+    }
+  }
+
+  async loadLatestHourlyPosition(): Promise<PositionData[] | null> {
+    if (!this.enabled || !this.supabase) return null;
+
+    try {
+      const { data, error } = await this.supabase
+        .from("position_snapshots")
+        .select("data")
+        .eq("tracking_type", TrackingType.HOURLY)
+        .order("timestamp", { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.error("Error loading latest hourly from Supabase:", error);
+        return null;
+      }
+
+      if (data && data.length > 0) {
+        const firstRow = data[0];
+        if (!firstRow || !firstRow.data) return null;
+
+        // Get all positions for this timestamp
+        const latestTimestamp = (firstRow.data as PositionData).timestamp;
+        const { data: allData } = await this.supabase
+          .from("position_snapshots")
+          .select("data")
+          .eq("timestamp", latestTimestamp)
+          .eq("tracking_type", TrackingType.HOURLY);
+
+        return allData ? allData.map(row => row.data as PositionData) : null;
+      }
+
+      return null;
+    } catch (error) {
+      console.error("Supabase load error:", error);
+      return null;
     }
   }
 }

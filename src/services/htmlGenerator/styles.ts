@@ -398,6 +398,53 @@ export const generateStyles = (): string => {
         tr:hover {
             background-color: ${COLORS.BACKGROUND_SOLID.HOVER};
         }
+        .current-state-row {
+            background: linear-gradient(90deg, rgba(255, 204, 0, 0.08) 0%, rgba(255, 159, 10, 0.06) 100%);
+            border-top: 2px solid ${COLORS.STATUS.CURRENT};
+            border-bottom: 2px solid ${COLORS.STATUS.CURRENT};
+            font-weight: 600;
+            position: relative;
+        }
+        .current-state-row:hover {
+            background: linear-gradient(90deg, rgba(255, 204, 0, 0.12) 0%, rgba(255, 159, 10, 0.10) 100%);
+        }
+        .current-state-row td {
+            padding: 12px 6px;
+            border-bottom: none;
+        }
+        .current-state-row td:first-child {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .live-badge {
+            background: linear-gradient(135deg, ${COLORS.BADGE.LIVE_GRADIENT_START} 0%, ${COLORS.BADGE.LIVE_GRADIENT_END} 100%);
+            color: ${COLORS.TEXT.WHITE};
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            animation: pulse 2s infinite;
+            box-shadow: 0 2px 4px rgba(255, 107, 107, 0.3);
+        }
+        .live-time {
+            color: ${COLORS.TEXT.SECONDARY};
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 2px 4px rgba(255, 107, 107, 0.3);
+            }
+            50% {
+                box-shadow: 0 2px 8px rgba(255, 107, 107, 0.5);
+            }
+            100% {
+                box-shadow: 0 2px 4px rgba(255, 107, 107, 0.3);
+            }
+        }
         .metric-label {
             color: ${COLORS.TEXT.SECONDARY};
             font-weight: 500;

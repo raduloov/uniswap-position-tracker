@@ -162,3 +162,8 @@ export interface PortfolioMetrics {
   ethPrice24hChangePercentage: number | null;
   positions: PositionMetrics[];
 }
+
+export enum TrackingType {
+  DAILY = "daily",
+  HOURLY = "hourly"
+}

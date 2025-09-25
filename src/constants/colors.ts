@@ -27,6 +27,7 @@ export const COLORS = {
     NEUTRAL: "#718096",
     INFO: "#667eea",
     WARNING: "#a0aec0",
+    CURRENT: "#FFC107",
   },
 
   // Badge colors
@@ -37,6 +38,8 @@ export const COLORS = {
     IN_RANGE_TEXT: "#155724",
     OUT_RANGE_BG: "#f8d7da",
     OUT_RANGE_TEXT: "#721c24",
+    LIVE_GRADIENT_START: "#FF6B6B",
+    LIVE_GRADIENT_END: "#FF8E53",
   },
   
   // Chain-specific colors

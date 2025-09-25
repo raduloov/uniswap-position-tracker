@@ -1,6 +1,6 @@
 import { SupabaseStorage } from "../storage/supabaseStorage";
 import { DataStorage } from "../storage/dataStorage";
-import { PositionData, PositionDataResult, PositionDataSource } from "../types";
+import { PositionData, PositionDataResult, PositionDataSource, TrackingType } from "../types";
 import { groupPositionsByTimestamp, getLatestPositions, getPreviousPositions } from "../utils/positionHistory";
 
 export class DataFetcher {
@@ -16,16 +16,16 @@ export class DataFetcher {
     let allPositions: PositionData[] = [];
     let source: PositionDataSource = PositionDataSource.NONE;
 
-    // Try Supabase first
+    // Try Supabase first - load only daily positions for main data
     if (this.supabaseStorage.isEnabled()) {
       console.log("☁️ Loading data from Supabase...");
-      const snapshots = await this.supabaseStorage.loadAllPositions();
+      const snapshots = await this.supabaseStorage.loadAllPositions(TrackingType.DAILY);
 
       if (snapshots && snapshots.length > 0) {
         // Flatten all snapshots
         allPositions = snapshots.flat();
         source = PositionDataSource.SUPABASE;
-        console.log(`Loaded ${snapshots.length} snapshot(s) from Supabase`);
+        console.log(`Loaded ${snapshots.length} daily snapshot(s) from Supabase`);
         console.log(`Total positions across all snapshots: ${allPositions.length}`);
       }
     }
@@ -83,9 +83,9 @@ export class DataFetcher {
   }
 
   async fetchAllPositionData(): Promise<PositionData[]> {
-    // Try Supabase first
+    // Try Supabase first - load only daily positions
     if (this.supabaseStorage.isEnabled()) {
-      const snapshots = await this.supabaseStorage.loadAllPositions();
+      const snapshots = await this.supabaseStorage.loadAllPositions(TrackingType.DAILY);
       if (snapshots && snapshots.length > 0) {
         const allData = snapshots.flat();
         console.log(`📊 Loaded ${allData.length} entries from Supabase`);
@@ -101,5 +101,15 @@ export class DataFetcher {
     }
 
     return [];
+  }
+
+  async fetchLatestHourlyPosition(): Promise<PositionData[] | null> {
+    // Try Supabase first
+    if (this.supabaseStorage.isEnabled()) {
+      return await this.supabaseStorage.loadLatestHourlyPosition();
+    }
+
+    // Fall back to local storage for hourly data
+    return await this.dataStorage.loadLatestHourlyData();
   }
 }
