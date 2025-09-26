@@ -19,6 +19,7 @@ import {
   formatTableDate
 } from "../../utils/htmlGenerator";
 import { formatPercentageWithClass } from "../../utils/formatting";
+import { getLivePositionData } from "../../utils/livePosition";
 
 export class HtmlGenerator {
   private htmlFilePath: string;
@@ -79,13 +80,8 @@ export class HtmlGenerator {
     // Group positions by positionId
     const positionGroups = this.groupPositionsByIds(allData);
 
-    // Group hourly data by position ID if available
-    const hourlyPositionGroups = new Map<string, PositionData>();
-    if (latestHourlyData) {
-      for (const position of latestHourlyData) {
-        hourlyPositionGroups.set(position.positionId, position);
-      }
-    }
+    // Get live position data handler
+    const livePositionData = getLivePositionData(latestHourlyData, positionGroups);
 
     // Calculate all metrics using centralized calculator
     const metricsCalculator = new PositionMetricsCalculator();
@@ -97,19 +93,11 @@ export class HtmlGenerator {
       combinedData.push(...latestHourlyData);
     }
 
-    // Get the latest daily positions (before hourly)
-    const latestDailyPositions = Array.from(positionGroups.values())
-      .map(positions => positions[0])
-      .filter(pos => pos !== undefined) as PositionData[];
-
-    // Use hourly data as current positions if available, otherwise use latest daily
-    const currentPositions = latestHourlyData && latestHourlyData.length > 0 ? latestHourlyData : latestDailyPositions;
-
     // Calculate portfolio metrics with proper current and previous positions
     const portfolioMetrics = metricsCalculator.calculatePortfolioMetrics(
       combinedData,
-      currentPositions,
-      latestDailyPositions // Use latest daily as "previous" for 24h comparison
+      livePositionData.currentPositions,
+      livePositionData.previousPositionsFor24h
     );
 
     const dashboardSection = this.buildDashboardSection(portfolioMetrics.dashboard);
@@ -122,8 +110,16 @@ export class HtmlGenerator {
         return new Date(latestB).getTime() - new Date(latestA).getTime();
       })
       .map(([positionId, positions]) => {
-        const hourlyPosition = hourlyPositionGroups.get(positionId) || null;
-        return this.buildPositionHistoryTable(positionId, positions, portfolioMetrics, hourlyPosition);
+        // Get position-specific table data
+        const tableData = livePositionData.getPositionTableData(positionId, positions);
+
+        return this.buildPositionHistoryTable(
+          positionId,
+          tableData.historicalPositions,
+          portfolioMetrics,
+          tableData.livePosition,
+          tableData.referenceFor24h
+        );
       })
       .join("\n");
 
@@ -277,7 +273,8 @@ ${generateStyles()}
     positionId: string,
     positions: PositionData[],
     portfolioMetrics: PortfolioMetrics,
-    hourlyPosition: PositionData | null = null
+    livePosition: PositionData | null = null,
+    referenceFor24h: PositionData | null = null
   ): string {
     if (positions.length === 0) return "";
 
@@ -313,8 +310,14 @@ ${generateStyles()}
     const profitLossSign = profitLoss.value >= 0 ? "+" : "-";
     const profitLossPercentSign = profitLoss.percentage >= 0 ? "+" : "";
 
-    // Use real hourly data if available, otherwise skip the current state row
-    const currentStateRow = hourlyPosition ? this.buildCurrentStateRow(hourlyPosition, latestPosition) : "";
+    // Build the LIVE row if we have live position data
+    let currentStateRow = "";
+    if (livePosition && referenceFor24h) {
+      currentStateRow = this.buildCurrentStateRow(livePosition, referenceFor24h);
+    } else if (livePosition) {
+      // Fallback if no reference is available (shouldn't happen normally)
+      currentStateRow = this.buildCurrentStateRow(livePosition, latestPosition);
+    }
 
     const rows = positions
       .map((position, index) => {
