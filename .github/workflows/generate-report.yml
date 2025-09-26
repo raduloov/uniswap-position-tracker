@@ -37,7 +37,7 @@ jobs:
           fi
           echo "Contents of dist directory:"
           ls -la dist/
-
+          echo "Build completed successfully"
       - name: Generate report from Supabase
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
