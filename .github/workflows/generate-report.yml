@@ -29,7 +29,14 @@ jobs:
         run: npm ci
 
       - name: Build TypeScript
-        run: npm run build
+        run: |
+          npm run build
+          if [ ! -d "dist" ]; then
+            echo "Error: dist directory not created"
+            exit 1
+          fi
+          echo "Contents of dist directory:"
+          ls -la dist/
 
       - name: Generate report from Supabase
         env:
