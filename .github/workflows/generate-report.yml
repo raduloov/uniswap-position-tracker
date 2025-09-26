@@ -2,8 +2,6 @@ name: Generate Report from Supabase
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
 
 permissions:
   contents: read

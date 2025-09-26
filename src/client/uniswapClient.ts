@@ -1,4 +1,5 @@
 import { getSqrtPriceX96FromTick } from "../utils/index";
+import { getAmountsForLiquidity } from "../utils/liquidity";
 import axios from "axios";
 import { Chain, GraphQLPosition, PositionData } from "../types";
 import { UNISWAP_CONSTANTS, STABLECOIN_SYMBOLS } from "../constants";
@@ -73,7 +74,7 @@ class UniswapClient {
 
     // Calculate current amounts
     const liquidity = BigInt(pos.liquidity);
-    const amounts = this.getAmountsForLiquidity(sqrtPriceX96, sqrtPriceLowerX96, sqrtPriceUpperX96, liquidity);
+    const amounts = getAmountsForLiquidity(sqrtPriceX96, sqrtPriceLowerX96, sqrtPriceUpperX96, liquidity);
 
     // Convert to human readable format
     const token0Amount = Number(amounts.amount0) / Math.pow(10, decimals0);
@@ -289,52 +290,6 @@ class UniswapClient {
       },
       ...(priceRange && { priceRange })
     };
-  }
-
-  private getAmountsForLiquidity(
-    sqrtPriceX96: bigint,
-    sqrtPriceLowerX96: bigint,
-    sqrtPriceUpperX96: bigint,
-    liquidity: bigint
-  ): { amount0: bigint; amount1: bigint } {
-    let amount0: bigint;
-    let amount1: bigint;
-
-    if (sqrtPriceX96 <= sqrtPriceLowerX96) {
-      // Current price is below the range, position is all in token0
-      amount0 = this.getAmount0ForLiquidity(sqrtPriceLowerX96, sqrtPriceUpperX96, liquidity);
-      amount1 = 0n;
-    } else if (sqrtPriceX96 >= sqrtPriceUpperX96) {
-      // Current price is above the range, position is all in token1
-      amount0 = 0n;
-      amount1 = this.getAmount1ForLiquidity(sqrtPriceLowerX96, sqrtPriceUpperX96, liquidity);
-    } else {
-      // Current price is within the range
-      amount0 = this.getAmount0ForLiquidity(sqrtPriceX96, sqrtPriceUpperX96, liquidity);
-      amount1 = this.getAmount1ForLiquidity(sqrtPriceLowerX96, sqrtPriceX96, liquidity);
-    }
-
-    return { amount0, amount1 };
-  }
-
-  private getAmount0ForLiquidity(sqrtRatioAX96: bigint, sqrtRatioBX96: bigint, liquidity: bigint): bigint {
-    if (sqrtRatioAX96 > sqrtRatioBX96) {
-      [sqrtRatioAX96, sqrtRatioBX96] = [sqrtRatioBX96, sqrtRatioAX96];
-    }
-
-    const numerator =
-      liquidity * UNISWAP_CONSTANTS.MATH.TWO ** UNISWAP_CONSTANTS.MATH.Q96 * (sqrtRatioBX96 - sqrtRatioAX96);
-    const denominator = sqrtRatioBX96 * sqrtRatioAX96;
-
-    return numerator / denominator;
-  }
-
-  private getAmount1ForLiquidity(sqrtRatioAX96: bigint, sqrtRatioBX96: bigint, liquidity: bigint): bigint {
-    if (sqrtRatioAX96 > sqrtRatioBX96) {
-      [sqrtRatioAX96, sqrtRatioBX96] = [sqrtRatioBX96, sqrtRatioAX96];
-    }
-
-    return (liquidity * (sqrtRatioBX96 - sqrtRatioAX96)) / UNISWAP_CONSTANTS.MATH.TWO ** UNISWAP_CONSTANTS.MATH.Q96;
   }
 
   // TODO: Understand and verify this calculation
