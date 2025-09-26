@@ -24,7 +24,27 @@ jobs:
         run: npm ci
 
       - name: Build TypeScript
-        run: npm run build
+        run: |
+          echo "Starting TypeScript build..."
+          npm run build
+          echo "Build command completed with exit code: $?"
+          echo "Checking for dist directory..."
+          if [ ! -d "dist" ]; then
+            echo "Error: dist directory not created"
+            echo "Current directory contents:"
+            ls -la
+            exit 1
+          fi
+          echo "Contents of dist directory:"
+          ls -la dist/
+          echo "Checking for index.js..."
+          if [ ! -f "dist/index.js" ]; then
+            echo "Error: dist/index.js not found!"
+            echo "Files in dist:"
+            find dist -name "*.js" | head -20
+            exit 1
+          fi
+          echo "Build completed successfully - dist/index.js exists"
 
       - name: Run type checking
         run: npm run typecheck
